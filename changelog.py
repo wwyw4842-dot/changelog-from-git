@@ -123,6 +123,7 @@ def generate_changelog(
     from_ref: str,
     to_ref: str,
     title: str = None,
+    show_dates: bool = False,
 ) -> str:
     """Generate a full CHANGELOG as a markdown string."""
     commits = get_commits(repo, from_ref, to_ref)
@@ -168,7 +169,8 @@ def generate_changelog(
         lines.append(f"### {TYPE_LABELS[commit_type]}\n")
         for short_hash, date, scope, desc in entries:
             scope_str = f"**{scope}:** " if scope else ""
-            lines.append(f"- {scope_str}{desc} ({short_hash})")
+            date_str = f" _{date}_" if show_dates else ""
+            lines.append(f"- {scope_str}{desc} ({short_hash}){date_str}")
         lines.append("")
 
     if not groups and not breaking_changes:
@@ -176,7 +178,8 @@ def generate_changelog(
         lines.append("### Commits\n")
         for short, date, message in commits:
             first_line = message.split("\n")[0].strip()
-            lines.append(f"- {first_line} ({short[:7]})")
+            date_str = f" _{date}_" if show_dates else ""
+            lines.append(f"- {first_line} ({short[:7]}){date_str}")
         lines.append("")
 
     return "\n".join(lines)
@@ -191,6 +194,7 @@ def main():
     parser.add_argument("--repo", default=".", help="Path to git repository (default: .)")
     parser.add_argument("--output", "-o", help="Output file (default: stdout)")
     parser.add_argument("--title", help="Custom changelog title")
+    parser.add_argument("--show-dates", action="store_true", help="Show commit date next to each entry")
     args = parser.parse_args()
 
     changelog = generate_changelog(
@@ -198,6 +202,7 @@ def main():
         from_ref=args.from_ref,
         to_ref=args.to_ref,
         title=args.title,
+        show_dates=args.show_dates,
     )
 
     if args.output:
