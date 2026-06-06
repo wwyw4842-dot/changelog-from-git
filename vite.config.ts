@@ -78,6 +78,7 @@ function copyTesseractAssets() {
 }
 
 export default defineConfig({
+  base: "./",
   plugins: [react(), crx({ manifest }), copyTesseractAssets()],
   resolve: {
     alias: {
