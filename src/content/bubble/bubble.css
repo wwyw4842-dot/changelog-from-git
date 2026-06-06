@@ -1,0 +1,385 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:host {
+  all: initial;
+  color-scheme: light dark;
+}
+
+.poly-root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 13px;
+  color: #1a1612;
+}
+
+.poly-serif {
+  font-family: "Source Serif Pro", "Source Han Serif SC", "Noto Serif SC", "Songti SC", Georgia, serif;
+  font-feature-settings: "ss01", "salt";
+  letter-spacing: 0.005em;
+}
+
+/* ====== 表面 ====== */
+.poly-surface {
+  background: rgba(251, 246, 241, var(--poly-bubble-opacity, 0.97));
+  color: #1a1612;
+  border-color: rgba(120, 90, 80, 0.12);
+}
+
+/* ====== 划词触发按钮 ====== */
+.poly-trigger-base {
+  min-width: 34px;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9a4a3d;
+  background: rgba(251, 246, 241, 0.97);
+  border: 1px solid rgba(184, 95, 80, 0.28);
+  border-radius: 999px;
+  box-shadow:
+    0 4px 14px -4px rgba(184, 95, 80, 0.30),
+    0 1px 2px rgba(120, 90, 80, 0.10);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition:
+    transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 220ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 220ms ease,
+    color 220ms ease;
+}
+.poly-trigger-base:hover {
+  transform: translateY(-1px) scale(1.04);
+  color: #7a392f;
+  border-color: rgba(184, 95, 80, 0.5);
+  box-shadow:
+    0 8px 22px -4px rgba(184, 95, 80, 0.42),
+    0 2px 6px rgba(201, 169, 106, 0.16);
+}
+.poly-trigger-base:active { transform: translateY(0) scale(0.97); }
+
+/* ====== 主气泡 ====== */
+.poly-bubble-base {
+  min-width: 280px;
+  max-width: 440px;
+  padding: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(120, 90, 80, 0.10);
+  box-shadow:
+    0 1px 2px rgba(120, 90, 80, 0.06),
+    0 18px 44px -16px rgba(120, 90, 80, 0.30),
+    0 28px 56px -28px rgba(184, 95, 80, 0.18);
+  animation: poly-bubble-in 340ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes poly-bubble-in {
+  0%   { opacity: 0; transform: scale(0.94) translateY(4px); }
+  60%  { opacity: 1; transform: scale(1.01) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ====== Brand dot ====== */
+.poly-brand-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #d99989, #b85f50);
+  box-shadow:
+    inset -1px -1px 2px rgba(150, 70, 60, 0.4),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.5),
+    0 0 8px rgba(184, 95, 80, 0.35);
+}
+
+/* ====== 暗色模式 ====== */
+@media (prefers-color-scheme: dark) {
+  .poly-root { color: #f1ede8; }
+  .poly-surface {
+    background: rgba(46, 38, 31, var(--poly-bubble-opacity, 0.95));
+    color: #f1ede8;
+    border-color: rgba(255, 230, 210, 0.10);
+  }
+  .poly-trigger-base {
+    color: #e1a795;
+    background: rgba(46, 38, 31, 0.92);
+    border-color: rgba(217, 153, 137, 0.36);
+  }
+
+  /* 强力覆盖暗色模式下被写死的 Tailwind 浅色/低对比度样式 */
+  
+  /* 1. 文字颜色覆盖 */
+  .poly-root .text-\[\#1a1612\] {
+    color: #f1ede8 !important; /* 译文、强调文字 -> 温暖乳白 */
+  }
+  .poly-root .text-\[\#867566\] {
+    color: #c5b5a5 !important; /* 原文、普通描述、辅色文字 -> 温暖浅灰 */
+  }
+  .poly-root .text-\[\#43382e\] {
+    color: #e3dcd2 !important; /* 正文解读、常规操作文字 -> 浅褐灰 */
+  }
+  .poly-root .text-\[\#5e4f43\] {
+    color: #cabfaf !important; /* 音标等辅助信息 -> 中浅褐 */
+  }
+  .poly-root .text-\[\#a89886\] {
+    color: #867566 !important; /* 标签前缀 (如 "译文"、"原文"、"音标" 等) -> 恰当暗灰 */
+  }
+  .poly-root .text-\[\#9a4a3d\] {
+    color: #e1a795 !important; /* 主品牌红 -> 柔和珊瑚红 */
+  }
+
+  /* 2. 背景与边框覆盖 */
+  .poly-root .bg-\[\#fbf6f1\] {
+    background-color: #241d18 !important; /* 详情面板背景 -> 极深成褐色 */
+  }
+  .poly-root .border-\[rgba\(120\,90\,80\,0\.10\)\] {
+    border-color: rgba(255, 230, 210, 0.08) !important; /* 面板边框 */
+  }
+  .poly-root .border-\[rgba\(120\,90\,80\,0\.12\)\] {
+    border-color: rgba(255, 230, 210, 0.10) !important; /* 描边与分割线 */
+  }
+  .poly-root .bg-\[rgba\(244\,236\,230\,0\.4\)\] {
+    background-color: rgba(30, 24, 20, 0.5) !important; /* 底部工具栏背景 -> 较深半透明 */
+  }
+  .poly-root .bg-\[\#fbf0eb\] {
+    background-color: rgba(184, 95, 80, 0.20) !important; /* 同义词 tag 背景 */
+  }
+  .poly-root .border-\[rgba\(184\,95\,80\,0\.30\)\] {
+    border-color: rgba(217, 153, 137, 0.35) !important; /* 同义词 tag 边框 */
+  }
+  .poly-root .hover\:bg-\[\#f4dcd1\]:hover {
+    background-color: rgba(184, 95, 80, 0.32) !important; /* 同义词 tag 悬停 bg */
+  }
+  .poly-root .bg-\[\#dfd3c8\] {
+    background-color: #43382e !important; /* 白名单开关关闭态背景 */
+  }
+
+  /* 3. 互动元素与按钮悬停覆盖 */
+  .poly-root .hover\:bg-\[rgba\(244\,236\,230\,0\,7\)\]:hover {
+    background-color: rgba(255, 255, 255, 0.08) !important; /* 工具按钮悬停 */
+  }
+  .poly-root .hover\:text-\[\#43382e\]:hover {
+    color: #f1ede8 !important; /* 工具按钮悬停文字 */
+  }
+  .poly-root .bg-\[\#fbf0eb\] {
+    background-color: rgba(184, 95, 80, 0.25) !important; /* 激活图标按钮 (固定) */
+  }
+  .poly-root .ring-\[rgba\(184\,95\,80\,0\.30\)\] {
+    --tw-ring-color: rgba(217, 153, 137, 0.40) !important; /* 激活态按钮环绕描边 */
+  }
+
+  /* 4. 默认操作按钮样式覆盖 (ActionBtn) */
+  .poly-root button.bg-\[\#fbf6f1\] {
+    background-color: #43382e !important; /* 常规按钮背景 -> 暗褐色 */
+    color: #f1ede8 !important;
+    border-color: rgba(255, 230, 210, 0.15) !important;
+  }
+  .poly-root button.bg-\[\#fbf6f1\]:hover {
+    background-color: #5e4f43 !important; /* 悬停背景 */
+    color: #e1a795 !important; /* 悬停文字 */
+    border-color: rgba(217, 153, 137, 0.40) !important;
+  }
+
+  /* 5. PolyProse 长文在暗色下的对比度补强（Shadow DOM 内 fallback） */
+  .poly-root .poly-prose { color: #e3dcd2 !important; }
+  .poly-root .poly-prose strong { color: #f5efe6 !important; }
+  .poly-root .poly-prose em { color: #e1a795 !important; }
+  .poly-root .poly-prose h1,
+  .poly-root .poly-prose h2 { color: #f5efe6 !important; }
+  .poly-root .poly-prose h3 { color: #e1a795 !important; }
+  .poly-root .poly-prose code {
+    background: rgba(217, 153, 137, 0.18) !important;
+    border-color: rgba(217, 153, 137, 0.30) !important;
+    color: #efbfaf !important;
+  }
+  .poly-root .poly-prose blockquote {
+    background: rgba(217, 153, 137, 0.10) !important;
+    color: #e3dcd2 !important;
+    border-left-color: #e1a795 !important;
+  }
+  .poly-root .poly-prose pre {
+    background: rgba(0, 0, 0, 0.30) !important;
+    border: 1px solid rgba(217, 153, 137, 0.20) !important;
+    padding: 0.6em 0.8em;
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  .poly-root .poly-prose pre code {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 0 !important;
+    color: #e3dcd2 !important;
+  }
+  .poly-root .poly-prose hr {
+    background: linear-gradient(90deg, transparent, rgba(217, 153, 137, 0.4), transparent) !important;
+  }
+  .poly-root .poly-drop-letter { color: #efbfaf !important; }
+}
+
+.poly-root ::selection { background: rgba(184, 95, 80, 0.30); }
+
+.poly-drag-handle { cursor: grab; }
+.poly-drag-handle:active { cursor: grabbing; }
+
+/* ====== 滚动条 ====== */
+.poly-scroll { scrollbar-width: thin; scrollbar-color: rgba(184, 95, 80, 0.32) transparent; }
+.poly-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.poly-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(184, 95, 80, 0.32), rgba(217, 153, 137, 0.28));
+  border-radius: 999px;
+}
+.poly-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(184, 95, 80, 0.55), rgba(217, 153, 137, 0.45));
+}
+
+.poly-root button:focus-visible,
+.poly-root input:focus-visible {
+  outline: 2px solid rgba(184, 95, 80, 0.40);
+  outline-offset: 1px;
+}
+
+/* ====== 按钮 ripple（与 sidepanel theme.css 同款，Shadow DOM 内复制一份） ====== */
+.poly-ripple {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.poly-ripple::after {
+  content: "";
+  position: absolute;
+  left: var(--rx, 50%);
+  top: var(--ry, 50%);
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.poly-ripple:active::after {
+  animation: poly-ripple-out 540ms cubic-bezier(0.16, 0.84, 0.44, 1);
+}
+@keyframes poly-ripple-out {
+  0%   { transform: scale(1); opacity: 0.32; }
+  60%  { opacity: 0.22; }
+  100% { transform: scale(70); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 60ms !important;
+  }
+}
+
+/* ====== 手动深色模式 (data-poly-theme) ====== */
+:host([data-poly-theme="dark"]) .poly-root { color: #f1ede8; }
+:host([data-poly-theme="dark"]) .poly-surface {
+  background: rgba(46, 38, 31, var(--poly-bubble-opacity, 0.95));
+  color: #f1ede8;
+  border-color: rgba(255, 230, 210, 0.10);
+}
+:host([data-poly-theme="dark"]) .poly-trigger-base {
+  color: #e1a795;
+  background: rgba(46, 38, 31, 0.92);
+  border-color: rgba(217, 153, 137, 0.36);
+}
+
+:host([data-poly-theme="dark"]) .poly-root .text-\[\#1a1612\] {
+  color: #f1ede8 !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .text-\[\#867566\] {
+  color: #c5b5a5 !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .text-\[\#43382e\] {
+  color: #e3dcd2 !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .text-\[\#5e4f43\] {
+  color: #cabfaf !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .text-\[\#a89886\] {
+  color: #867566 !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .text-\[\#9a4a3d\] {
+  color: #e1a795 !important;
+}
+
+:host([data-poly-theme="dark"]) .poly-root .bg-\[\#fbf6f1\] {
+  background-color: #241d18 !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .border-\[rgba\(120\,90\,80\,0\.10\)\] {
+  border-color: rgba(255, 230, 210, 0.08) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .border-\[rgba\(120\,90\,80\,0\.12\)\] {
+  border-color: rgba(255, 230, 210, 0.10) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .bg-\[rgba\(244\,236\,230\,0\.4\)\] {
+  background-color: rgba(30, 24, 20, 0.5) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .bg-\[\#fbf0eb\] {
+  background-color: rgba(184, 95, 80, 0.20) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .border-\[rgba\(184\,95\,80\,0\.30\)\] {
+  border-color: rgba(217, 153, 137, 0.35) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .hover\:bg-\[\#f4dcd1\]:hover {
+  background-color: rgba(184, 95, 80, 0.32) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .bg-\[\#dfd3c8\] {
+  background-color: #43382e !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .hover\:bg-\[rgba\(244\,236\,230\,0\,7\)\]:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .hover\:text-\[\#43382e\]:hover {
+  color: #f1ede8 !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .ring-\[rgba\(184\,95\,80\,0\.30\)\] {
+  --tw-ring-color: rgba(217, 153, 137, 0.40) !important;
+}
+
+:host([data-poly-theme="dark"]) .poly-root button.bg-\[\#fbf6f1\] {
+  background-color: #43382e !important;
+  color: #f1ede8 !important;
+  border-color: rgba(255, 230, 210, 0.15) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root button.bg-\[\#fbf6f1\]:hover {
+  background-color: #5e4f43 !important;
+  color: #e1a795 !important;
+  border-color: rgba(217, 153, 137, 0.40) !important;
+}
+
+:host([data-poly-theme="dark"]) .poly-root .poly-prose { color: #e3dcd2 !important; }
+:host([data-poly-theme="dark"]) .poly-root .poly-prose strong { color: #f5efe6 !important; }
+:host([data-poly-theme="dark"]) .poly-root .poly-prose em { color: #e1a795 !important; }
+:host([data-poly-theme="dark"]) .poly-root .poly-prose h1,
+:host([data-poly-theme="dark"]) .poly-root .poly-prose h2 { color: #f5efe6 !important; }
+:host([data-poly-theme="dark"]) .poly-root .poly-prose h3 { color: #e1a795 !important; }
+:host([data-poly-theme="dark"]) .poly-root .poly-prose code {
+  background: rgba(217, 153, 137, 0.18) !important;
+  border-color: rgba(217, 153, 137, 0.30) !important;
+  color: #efbfaf !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .poly-prose blockquote {
+  background: rgba(217, 153, 137, 0.10) !important;
+  color: #e3dcd2 !important;
+  border-left-color: #e1a795 !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .poly-prose pre {
+  background: rgba(0, 0, 0, 0.30) !important;
+  border: 1px solid rgba(217, 153, 137, 0.20) !important;
+  padding: 0.6em 0.8em;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+:host([data-poly-theme="dark"]) .poly-root .poly-prose pre code {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  color: #e3dcd2 !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .poly-prose hr {
+  background: linear-gradient(90deg, transparent, rgba(217, 153, 137, 0.4), transparent) !important;
+}
+:host([data-poly-theme="dark"]) .poly-root .poly-drop-letter { color: #efbfaf !important; }
