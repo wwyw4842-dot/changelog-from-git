@@ -38,6 +38,7 @@ async function bootstrap(): Promise<void> {
   }
   if (isWhitelisted(settings.whitelist || [])) return;
 
+  // eslint-disable-next-line prefer-const
   let selectionController: SelectionController;
   const bubbleController = createBubbleController({
     getSettings,
