@@ -16,3 +16,5 @@ npm-install.log
 .tsbuild
 test.log
 build.log
+test-results/
+playwright-report/
