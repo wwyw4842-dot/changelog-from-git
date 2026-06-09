@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { VocabularyEntry } from "@shared/types";
 import { send } from "@shared/messaging";
 import { PolyProse } from "@shared/PolyProse";
+import { useStreamPort } from "../hooks/useStreamPort";
 import { sideUi } from "./ui";
 
 type ViewMode = "grouped" | "due" | "review";
@@ -21,7 +22,7 @@ export function VocabularyTab() {
     error?: string;
   }>({ day: null, text: "", streaming: false, words: [] });
 
-  const portRef = useRef<chrome.runtime.Port | null>(null);
+  const port = useStreamPort();
 
   const refresh = async (nextMode: ViewMode) => {
     const list = await send("vocabulary:list", { due: nextMode === "due" || nextMode === "review" });
@@ -31,12 +32,6 @@ export function VocabularyTab() {
   useEffect(() => {
     void refresh(mode);
   }, [mode]);
-
-  useEffect(() => {
-    return () => {
-      portRef.current?.disconnect();
-    };
-  }, []);
 
   const current = items[reviewIndex];
 
@@ -64,33 +59,7 @@ export function VocabularyTab() {
 
   const composeArticle = (day: string, dayItems: VocabularyEntry[]) => {
     if (!dayItems.length) return;
-    portRef.current?.disconnect();
     setComposeState({ day, text: "", streaming: true, words: dayItems.map((item) => item.word) });
-    const port = chrome.runtime.connect({ name: "polyglot-stream" });
-    portRef.current = port;
-
-    port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
-      if (message.type === "chunk") {
-        const chunk = message.payload as { translatedText?: string; provider?: string };
-        if (chunk.translatedText) {
-          setComposeState((prev) => ({
-            ...prev,
-            text: chunk.translatedText || "",
-            provider: chunk.provider || prev.provider,
-          }));
-        }
-      } else if (message.type === "done") {
-        const done = message.payload as { provider?: string };
-        setComposeState((prev) => ({ ...prev, streaming: false, provider: done.provider || prev.provider }));
-      } else if (message.type === "error") {
-        const err = message.payload as { message?: string };
-        setComposeState((prev) => ({
-          ...prev,
-          streaming: false,
-          error: err?.message || "未知错误",
-        }));
-      }
-    });
 
     const wordsList = dayItems
       .map(
@@ -128,19 +97,37 @@ export function VocabularyTab() {
       "- 最后附上关键词回顾。",
     ].join("\n");
 
-    port.postMessage({
-      type: "llm:prompt",
-      payload: {
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      },
-    });
+    port.startPrompt(
+      [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      {
+        onChunk: (chunk) => {
+          if (chunk.translatedText) {
+            setComposeState((prev) => ({
+              ...prev,
+              text: chunk.translatedText || "",
+              provider: chunk.provider || prev.provider,
+            }));
+          }
+        },
+        onDone: (done) => {
+          setComposeState((prev) => ({
+            ...prev,
+            streaming: false,
+            provider: done.provider || prev.provider,
+          }));
+        },
+        onError: (message) => {
+          setComposeState((prev) => ({ ...prev, streaming: false, error: message }));
+        },
+      }
+    );
   };
 
   const stopCompose = () => {
-    portRef.current?.postMessage({ type: "translate:stream:abort" });
+    port.abort();
     setComposeState((prev) => ({ ...prev, streaming: false }));
   };
 

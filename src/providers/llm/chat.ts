@@ -1,4 +1,5 @@
 import { ProviderError } from "@shared/provider-error";
+import type { ChatMessage } from "@shared/stream-protocol";
 import type { ProviderContext } from "../types";
 import {
   parseChatCompletionsDelta,
@@ -8,10 +9,7 @@ import {
 } from "./delta-parsers";
 import { readSSE, readJSONLines } from "./sse";
 
-export interface ChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
-}
+export type { ChatMessage } from "@shared/stream-protocol";
 
 export type LLMProviderId =
   | "openai"

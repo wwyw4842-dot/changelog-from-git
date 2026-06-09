@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { TranslationResult } from "@shared/types";
+import { useStreamPort } from "../hooks/useStreamPort";
 import { sideUi } from "./ui";
 
 type LatestPayload = TranslationResult & { from?: string; to?: string; ts?: number };
@@ -15,8 +16,7 @@ export function ChatTab() {
   const [latest, setLatest] = useState<LatestPayload | null>(null);
   const [prompt, setPrompt] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
-  const portRef = useRef<chrome.runtime.Port | null>(null);
-  const activeIdRef = useRef<string | null>(null);
+  const port = useStreamPort();
 
   useEffect(() => {
     chrome.storage.local.get("latestSidePanelResult").then((res) => {
@@ -29,47 +29,11 @@ export function ChatTab() {
     chrome.storage.onChanged.addListener(listener);
     return () => {
       chrome.storage.onChanged.removeListener(listener);
-      portRef.current?.disconnect();
     };
   }, []);
 
-  const ensurePort = () => {
-    if (portRef.current) return portRef.current;
-    const port = chrome.runtime.connect({ name: "polyglot-stream" });
-    port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
-      const id = activeIdRef.current;
-      if (!id) return;
-      setTurns((prev) =>
-        prev.map((turn) => {
-          if (turn.id !== id) return turn;
-          if (message.type === "chunk") {
-            const chunk = message.payload as Partial<TranslationResult>;
-            return { ...turn, text: chunk.translatedText || turn.text };
-          }
-          if (message.type === "done") {
-            const done = message.payload as TranslationResult;
-            return { ...turn, text: done.translatedText || turn.text, streaming: false };
-          }
-          if (message.type === "error") {
-            const err = message.payload as { message?: string };
-            return {
-              ...turn,
-              text: `出错：${err?.message || "unknown"}`,
-              streaming: false,
-            };
-          }
-          return turn;
-        })
-      );
-      if (message.type === "done" || message.type === "error") {
-        activeIdRef.current = null;
-      }
-    });
-    port.onDisconnect.addListener(() => {
-      portRef.current = null;
-    });
-    portRef.current = port;
-    return port;
+  const updateTurn = (id: string, patch: (turn: Turn) => Turn) => {
+    setTurns((prev) => prev.map((turn) => (turn.id === id ? patch(turn) : turn)));
   };
 
   const ask = () => {
@@ -83,7 +47,6 @@ export function ChatTab() {
       { id: assistantId, role: "assistant", text: "...", streaming: true },
     ]);
     setPrompt("");
-    activeIdRef.current = assistantId;
 
     const context = [
       `原文 (${latest.from || "auto"} → ${latest.to || "zh-CN"})：${latest.originalText}`,
@@ -91,8 +54,27 @@ export function ChatTab() {
       `问题：${question}`,
     ].join("\n");
 
-    const port = ensurePort();
-    port.postMessage({
+    // 每次提问开新端口：上一个未完成的流会随旧端口断开而中止
+    port.open({
+      onChunk: (chunk) => {
+        updateTurn(assistantId, (turn) => ({ ...turn, text: chunk.translatedText || turn.text }));
+      },
+      onDone: (done) => {
+        updateTurn(assistantId, (turn) => ({
+          ...turn,
+          text: done.translatedText || turn.text,
+          streaming: false,
+        }));
+      },
+      onError: (message) => {
+        updateTurn(assistantId, (turn) => ({
+          ...turn,
+          text: `出错：${message}`,
+          streaming: false,
+        }));
+      },
+    });
+    port.post({
       type: "translate:stream",
       payload: {
         text: context,
@@ -104,7 +86,7 @@ export function ChatTab() {
   };
 
   const stop = () => {
-    portRef.current?.postMessage({ type: "translate:stream:abort" });
+    port.abort();
   };
 
   if (!latest?.originalText) {

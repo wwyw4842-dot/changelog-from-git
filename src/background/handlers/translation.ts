@@ -1,42 +1,21 @@
 import type { MessageRouter } from "@shared/messaging";
-import { addHistory, clearHistory, listHistory } from "@shared/storage/history";
+import { clearHistory, listHistory } from "@shared/storage/history";
 import { getSettings } from "@shared/storage/settings";
 import { bumpActivity } from "@shared/storage/activity";
-import { translateViaChain } from "@providers/registry";
-import { mergeLlmCredentials } from "@shared/llm-credentials";
+import { runTranslation } from "../translate-helper";
 
 export function registerTranslationHandlers(router: MessageRouter): void {
   router.on("translate:request", async (req) => {
     const settings = await getSettings();
-    const enriched: typeof req = {
-      ...req,
-      ieltsMode: req.ieltsMode ?? settings.ieltsMode,
-      ieltsTarget: req.ieltsTarget ?? settings.ieltsTarget,
-    };
-    const result = await translateViaChain(enriched, {
-      primary: req.providerId || settings.primaryProvider,
-      fallback: settings.fallbackChain,
-      credentialsFor: (id) => mergeLlmCredentials(id, settings.credentials),
-    });
-    await addHistory({ ...result, from: req.from, to: req.to, ts: Date.now() });
+    const result = await runTranslation(req, settings);
     void bumpActivity("queries");
     return result;
   });
 
   router.on("translate:selection", async (req, sender) => {
     const settings = await getSettings();
-    const enriched: typeof req = {
-      ...req,
-      ieltsMode: req.ieltsMode ?? settings.ieltsMode,
-      ieltsTarget: req.ieltsTarget ?? settings.ieltsTarget,
-    };
     try {
-      const result = await translateViaChain(enriched, {
-        primary: req.providerId || settings.primaryProvider,
-        fallback: settings.fallbackChain,
-        credentialsFor: (id) => mergeLlmCredentials(id, settings.credentials),
-      });
-      await addHistory({ ...result, from: req.from, to: req.to, ts: Date.now() });
+      const result = await runTranslation(req, settings);
       void bumpActivity("queries");
       await chrome.storage.local.set({
         latestSidePanelResult: { ...result, from: req.from, to: req.to, ts: Date.now() },
