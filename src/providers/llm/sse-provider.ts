@@ -123,7 +123,8 @@ export function buildChatCompletionsBody(input: SSEProviderRequest): unknown {
   };
 }
 
-function extractQuickField(buf: string): string {
+/** 深度模式下从未完成的 JSON 流里先扒出 translatedText 字段，用于打字机效果 */
+export function extractQuickField(buf: string): string {
   const match = /"translatedText"\s*:\s*"([^"]*)/.exec(buf);
   return match ? match[1] : "";
 }

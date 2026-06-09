@@ -1,4 +1,4 @@
-import { ClaudeStreamChunkSchema } from "@shared/validation";
+import { parseClaudeDelta } from "./delta-parsers";
 import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 import { createSSEProvider } from "./sse-provider";
 
@@ -27,18 +27,6 @@ export const claudeProvider = createSSEProvider({
     }),
     messages: [{ role: "user", content: buildUserPrompt(req) }],
   }),
-  parseDelta(data) {
-    try {
-      const parsed = ClaudeStreamChunkSchema.safeParse(JSON.parse(data));
-      if (!parsed.success) return "";
-      const chunk = parsed.data;
-      if (chunk.type === "content_block_delta" && chunk.delta?.type === "text_delta") {
-        return chunk.delta.text || "";
-      }
-      return "";
-    } catch {
-      return "";
-    }
-  },
+  parseDelta: parseClaudeDelta,
   isAuthenticationFailure: (status) => status === 401,
 });

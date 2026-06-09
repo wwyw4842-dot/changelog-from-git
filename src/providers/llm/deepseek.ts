@@ -1,4 +1,4 @@
-import { ChatCompletionStreamChunkSchema } from "@shared/validation";
+import { parseChatCompletionsDelta } from "./delta-parsers";
 import { buildChatCompletionsBody, createSSEProvider } from "./sse-provider";
 
 export function createDeepseekProvider(options: {
@@ -20,16 +20,7 @@ export function createDeepseekProvider(options: {
       "Content-Type": "application/json",
     }),
     buildBody: buildChatCompletionsBody,
-    parseDelta(data) {
-      try {
-        const parsed = ChatCompletionStreamChunkSchema.safeParse(JSON.parse(data));
-        if (!parsed.success) return "";
-        const chunk = parsed.data;
-        return chunk.choices?.[0]?.delta?.content ?? "";
-      } catch {
-        return "";
-      }
-    },
+    parseDelta: parseChatCompletionsDelta,
     isAuthenticationFailure: (status) => status === 401,
   });
 }

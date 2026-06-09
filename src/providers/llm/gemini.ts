@@ -1,4 +1,4 @@
-import { GeminiStreamChunkSchema } from "@shared/validation";
+import { parseGeminiDelta } from "./delta-parsers";
 import { buildSystemPrompt, buildUserPrompt } from "./prompt";
 import { createSSEProvider } from "./sse-provider";
 
@@ -31,15 +31,6 @@ export const geminiProvider = createSSEProvider({
       maxOutputTokens: 1024,
     },
   }),
-  parseDelta(data) {
-    try {
-      const parsed = GeminiStreamChunkSchema.safeParse(JSON.parse(data));
-      if (!parsed.success) return "";
-      const chunk = parsed.data;
-      return (chunk.candidates?.[0]?.content?.parts || []).map((part) => part.text || "").join("");
-    } catch {
-      return "";
-    }
-  },
+  parseDelta: parseGeminiDelta,
   isAuthenticationFailure: (status) => status === 401 || status === 403,
 });

@@ -1,8 +1,9 @@
 import type { TranslationResult } from "@shared/types";
 import { ProviderError } from "@shared/provider-error";
-import { OllamaChatChunkSchema } from "@shared/validation";
 import type { TranslationProvider } from "../types";
+import { parseOllamaDelta } from "./delta-parsers";
 import { buildSystemPrompt, buildUserPrompt, parseDeep } from "./prompt";
+import { extractQuickField } from "./sse-provider";
 import { readJSONLines } from "./sse";
 
 export const ollamaProvider: TranslationProvider = {
@@ -44,19 +45,12 @@ export const ollamaProvider: TranslationProvider = {
       }
       let buf = "";
       for await (const line of readJSONLines(response, ctx.signal)) {
-        try {
-          const parsed = OllamaChatChunkSchema.safeParse(JSON.parse(line));
-          if (!parsed.success) continue;
-          const chunk = parsed.data;
-          const content = chunk.message?.content || "";
-          if (content) {
-            buf += content;
-            yield { translatedText: req.mode === "deep" ? extractQuickField(buf) : buf };
-          }
-          if (chunk.done) break;
-        } catch {
-          // ignore partial
+        const { text, done } = parseOllamaDelta(line);
+        if (text) {
+          buf += text;
+          yield { translatedText: req.mode === "deep" ? extractQuickField(buf) : buf };
         }
+        if (done) break;
       }
       if (req.mode === "deep") {
         const parsed = parseDeep(buf);
@@ -76,8 +70,3 @@ export const ollamaProvider: TranslationProvider = {
     return streamIter();
   },
 };
-
-function extractQuickField(buf: string): string {
-  const match = /"translatedText"\s*:\s*"([^"]*)/.exec(buf);
-  return match ? match[1] : "";
-}
