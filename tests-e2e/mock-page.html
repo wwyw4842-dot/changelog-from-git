@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Polyglot E2E Test Page</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #faf9f6;
+      color: #333;
+    }
+    .text-container {
+      margin-top: 40px;
+      line-height: 1.6;
+      font-size: 18px;
+    }
+    .word {
+      font-weight: bold;
+      color: #8c786a;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Polyglot E2E Test Host Page</h1>
+  <p>This is a local static HTML page used to verify the Chrome extension's injected Shadow DOM and floating translation bubble.</p>
+  
+  <div class="text-container">
+    <p id="target-sentence">To understand the world, one must be a <span class="word" id="target-word">polyglot</span>, learning multiple languages and custom traditions.</p>
+  </div>
+</body>
+</html>
