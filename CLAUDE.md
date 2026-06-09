@@ -4,39 +4,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-`changelog.py` is a standalone Python 3 script (no third-party dependencies) that reads a git repository's commit history and generates a structured, emoji-enhanced `CHANGELOG.md` using the [Conventional Commits](https://www.conventionalcommits.org/) spec.
+**Polyglot** — a Chrome MV3 extension (TypeScript + React + Vite + Tailwind) for AI-assisted language learning: selection-bubble translation, immersive page translation, vocabulary SRS, IELTS writing/speaking practice, OCR, and PDF support.
 
-## Running the Script
+## Commands
 
 ```bash
-# All commits on current branch → stdout
-python3 changelog.py
-
-# Since a tag
-python3 changelog.py --from v1.0.0
-
-# Range, write to file
-python3 changelog.py --from v1.0.0 --to v2.0.0 -o CHANGELOG.md
-
-# Custom title, different repo
-python3 changelog.py --repo /path/to/repo --title "My Project v2.0.0"
+npm run build        # tsc -b && vite build → dist/ (load this in chrome://extensions)
+npm test             # vitest unit tests
+npm run test:e2e     # Playwright e2e (builds dist/ first; loads the extension headless)
+npm run lint         # eslint src/**/*.{ts,tsx}
+npx vitest run src/providers/registry.test.ts   # single test file
 ```
-
-There are no tests, no build step, and no linter configured. The script runs directly with the system Python 3.
 
 ## Architecture
 
-All logic lives in `changelog.py` as four sequential stages:
+Message flow: **content script / sidepanel / popup** → typed message bus (`@shared/messaging` `send()` / `MessageRouter`) or the `polyglot-stream` Port → **background service worker** → provider chain.
 
-1. **`get_commits`** — calls `git log` with a `---COMMIT-END---` separator and parses raw output into `(hash, date, message)` tuples.
-2. **`parse_commit`** — matches each commit's first line against `CONVENTIONAL_RE` and its body against `BREAKING_RE`. Returns `(type, scope, description, is_breaking)`. Non-matching commits return an empty type and are silently skipped in grouping (but shown flat if *no* conventional commits exist at all).
-3. **`generate_changelog`** — groups parsed commits into a `defaultdict` keyed by type, then renders markdown in the order defined by `TYPE_ORDER`. Breaking changes get their own `⚠️ BREAKING CHANGES` section at the top.
-4. **`main`** — argparse entry point; writes to stdout or a file.
+- `src/providers/` — translation engines behind one `TranslationProvider` interface, looked up via `registry.ts` (`translateViaChain` = primary + fallback chain + cache).
+  - Free REST engines (google/bing/deepl/volcano) are built with `createRestProvider` (`rest-provider.ts`); language-code differences live in `lang-mapper.ts` only.
+  - Streaming LLM engines (openai/claude/gemini/deepseek) are built with `createSSEProvider` (`llm/sse-provider.ts`); SSE/JSONL chunk parsing is shared via `llm/delta-parsers.ts`.
+  - Freeform chat (`llm/chat.ts`) is an adapter table over the same parsers — add a new LLM by adding one adapter entry, not a new stream loop.
+- `src/background/` — service worker. `handlers/` register on the MessageRouter; `translate-helper.ts` `runTranslation()` is the single enrich→chain→history pipeline; `handlers/stream.ts` owns the `polyglot-stream` Port.
+- `src/shared/stream-protocol.ts` — the discriminated-union message types for that Port, used by **both** sides. Change the protocol here, never inline.
+- `src/sidepanel/` — React app. Pages stream LLM output through the `useStreamPort()` hook (`hooks/useStreamPort.ts`); do not hand-roll `chrome.runtime.connect` in pages.
+- `src/content/` — bootstrap + controllers (selection/bubble/shortcuts), bubble UI in Shadow DOM, immersive scanner, OCR, PDF hooks.
+- `src/shared/storage/` — Dexie (IndexedDB) for settings/history/vocabulary/activity; API keys encrypted with WebCrypto AES-GCM (`crypto.ts`).
 
 ## Key Conventions
 
-- `TYPE_ORDER` controls section rendering order and must stay in sync with `TYPE_LABELS`. Adding a new commit type requires updating both constants.
-- Commit type matching is **case-insensitive** (`re.IGNORECASE`), but is stored lowercase.
-- Breaking changes are detected two ways: a `!` after the type (`feat!:`) or a `BREAKING CHANGE:` line anywhere in the commit body. Both set `is_breaking=True`.
-- The `--from` ref is **exclusive** (git range `from..to`); omitting it means all commits reachable from `--to` (default `HEAD`).
-- The git subprocess exits the whole script on non-zero return code (`sys.exit(1)`).
+- Path aliases: `@/*` → `src/`, `@shared/*`, `@providers/*` (tsconfig + vite config must stay in sync).
+- Provider errors are always `ProviderError` with a stable `code` (`EMPTY_TEXT`, `HTTP_ERROR`, `AUTHENTICATION_FAILURE`, `MISSING_CREDENTIALS`, `EMPTY_RESULT`, …) — the UI maps codes to Chinese user messages.
+- Test files (`*.test.ts(x)`) are excluded from `tsc -b` (see tsconfig `exclude`); vitest type-checks them itself.
+- `vite.config.ts` sets `base: "./"` — required for chrome-extension:// pages to resolve assets; do not remove.
+- Adding a translation engine: implement via `createRestProvider`/`createSSEProvider`, register in `registry.ts`, add language quirks to `lang-mapper.ts`.
