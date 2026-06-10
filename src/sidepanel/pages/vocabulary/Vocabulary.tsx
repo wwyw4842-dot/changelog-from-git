@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { VocabularyEntry } from "@shared/types";
 import { send } from "@shared/messaging";
+import { downloadAnkiExport } from "@shared/anki-export";
 import { useStreamPort } from "../../hooks/useStreamPort";
 import { sideUi } from "../ui";
 import { VocabularyGrid } from "./VocabularyGrid";
@@ -147,26 +148,49 @@ export function VocabularyTab() {
       error: undefined,
     });
 
+  const [exporting, setExporting] = useState(false);
+  const exportAnki = async () => {
+    setExporting(true);
+    try {
+      const all = await send("vocabulary:list", {});
+      downloadAnkiExport(all);
+    } catch (error) {
+      console.warn("[polyglot] anki export failed", error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className={sideUi.pageStack}>
-      <div className={sideUi.vocabModeRow}>
-        {(
-          [
-            { key: "grouped", label: "按日期" },
-            { key: "due", label: "待复习" },
-            { key: "review", label: "复习模式" },
-          ] as const
-        ).map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setMode(key)}
-            className={`${sideUi.modeTabButton} ${
-              mode === key ? sideUi.modeTabActive : sideUi.modeTabIdle
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className={sideUi.vocabToolbar}>
+        <div className={sideUi.vocabModeRow}>
+          {(
+            [
+              { key: "grouped", label: "按日期" },
+              { key: "due", label: "待复习" },
+              { key: "review", label: "复习模式" },
+            ] as const
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setMode(key)}
+              className={`${sideUi.modeTabButton} ${
+                mode === key ? sideUi.modeTabActive : sideUi.modeTabIdle
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => void exportAnki()}
+          disabled={exporting || items.length === 0}
+          className={sideUi.subtleButton}
+          title="导出为 Anki 可导入的 .txt 文件"
+        >
+          {exporting ? "导出中…" : "导出 Anki"}
+        </button>
       </div>
 
       {mode === "review" ? (

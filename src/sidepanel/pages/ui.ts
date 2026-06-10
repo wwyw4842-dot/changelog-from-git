@@ -387,6 +387,7 @@ export const sideUi = {
     "poly-serif text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-500",
 
   stackLg: "space-y-4",
+  vocabToolbar: "flex items-center justify-between gap-2",
   vocabModeRow: "flex items-center gap-1 text-xs",
   stackTight: "space-y-1.5",
   badgeBase:
