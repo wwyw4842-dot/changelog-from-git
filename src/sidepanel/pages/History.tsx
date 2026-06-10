@@ -6,12 +6,18 @@ import { sideUi } from "./ui";
 export function HistoryTab() {
   const [items, setItems] = useState<HistoryEntry[]>([]);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [engineFilter, setEngineFilter] = useState<string>("all");
 
-  const refresh = useCallback(async () => {
-    const list = await send("history:list", { query, limit: 500 });
-    setItems(list);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
   }, [query]);
+
+  const refresh = useCallback(async () => {
+    const list = await send("history:list", { query: debouncedQuery, limit: 500 });
+    setItems(list);
+  }, [debouncedQuery]);
 
   useEffect(() => {
     void refresh();

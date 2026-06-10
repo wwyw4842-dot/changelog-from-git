@@ -1,4 +1,5 @@
 import type {
+  ActivityDay,
   ActivityStats,
   HistoryEntry,
   MessageResponse,
@@ -44,6 +45,7 @@ export type ChannelMap = {
   "provider:test": { req: { providerId: string }; resp: { ok: boolean; message?: string } };
   "immersive:toggle": { req: { tabId?: number; enable?: boolean }; resp: { enabled: boolean } };
   "stats:daily": { req: void; resp: ActivityStats };
+  "stats:year": { req: void; resp: ActivityDay[] };
   "vocabulary:words": { req: void; resp: string[] };
 };
 

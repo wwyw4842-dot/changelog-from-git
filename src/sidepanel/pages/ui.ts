@@ -342,6 +342,10 @@ export const sideUi = {
     "text-[10px] uppercase tracking-[0.12em] text-ink-400",
   dashboardMetricsGrid: "grid grid-cols-3 gap-2",
   dashboardChartWrap: "mt-4",
+  heatmapWrap: "mt-4",
+  heatmapGrid: "flex gap-px overflow-x-auto pt-1",
+  heatmapWeekCol: "flex flex-col gap-px",
+  heatmapCell: "w-2 h-2 rounded-sm flex-shrink-0",
   dashboardChartHeader:
     "mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-ink-400",
   dashboardChartBars: "flex h-16 items-end gap-1",

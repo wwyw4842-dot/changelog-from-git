@@ -6,7 +6,7 @@ import {
   reviewVocabulary,
   updateVocabulary,
 } from "@shared/storage/vocabulary";
-import { bumpActivity, getDailyStats } from "@shared/storage/activity";
+import { bumpActivity, getDailyStats, getYearActivity } from "@shared/storage/activity";
 import { db } from "@shared/storage/db";
 import { getSettings } from "@shared/storage/settings";
 import { addReviewArticle, listReviewArticles, removeReviewArticle } from "@shared/storage/review-articles";
@@ -66,6 +66,7 @@ export function registerVocabularyHandlers(router: MessageRouter): void {
   router.on("reviewArticle:list", async ({ limit }) => listReviewArticles({ limit }));
   router.on("reviewArticle:remove", async ({ id }) => removeReviewArticle(id));
   router.on("stats:daily", async () => getDailyStats());
+  router.on("stats:year", async () => getYearActivity());
 }
 
 async function enrichVocabularyExamplesAfterAdd(id: number): Promise<void> {
