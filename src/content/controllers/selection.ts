@@ -7,6 +7,8 @@ import { refreshVocabHighlight } from "../vocabHighlight/highlighter";
 import type { SettingsAccessor, ShowCardParams } from "./types";
 
 const MAX_TEXT_LENGTH = 1200;
+const CONTEXT_MAX_LENGTH = 320;
+const CONTEXT_MARGIN = 140;
 
 export interface SelectionController {
   handleSelection: () => void;
@@ -299,11 +301,11 @@ export function createSelectionController({
       }
       const raw = (paragraph?.textContent || selection.toString()).trim().replace(/\s+/g, " ");
       if (!raw) return "";
-      if (raw.length <= 320) return raw;
+      if (raw.length <= CONTEXT_MAX_LENGTH) return raw;
       const index = raw.indexOf(text);
-      if (index < 0) return raw.slice(0, 320) + "...";
-      const start = Math.max(0, index - 140);
-      const end = Math.min(raw.length, index + text.length + 140);
+      if (index < 0) return raw.slice(0, CONTEXT_MAX_LENGTH) + "...";
+      const start = Math.max(0, index - CONTEXT_MARGIN);
+      const end = Math.min(raw.length, index + text.length + CONTEXT_MARGIN);
       const prefix = start > 0 ? "..." : "";
       const suffix = end < raw.length ? "..." : "";
       return `${prefix}${raw.slice(start, end)}${suffix}`;

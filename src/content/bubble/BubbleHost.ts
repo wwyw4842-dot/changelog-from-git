@@ -40,7 +40,7 @@ export function createBubbleHost(): BubbleHandle {
   document.documentElement.appendChild(hostElement);
 
   const root: Root = createRoot(mount);
-  const controller: BubbleController = {
+  let state: BubbleController = {
     visible: false,
     pinned: false,
     trigger: null,
@@ -48,18 +48,16 @@ export function createBubbleHost(): BubbleHandle {
   };
 
   const render = () => {
-    root.render(createElement(Bubble, { controller, onPinChange: setPinned, onClose: hide }));
+    root.render(createElement(Bubble, { controller: state, onPinChange: setPinned, onClose: hide }));
   };
 
   const setPinned = (value: boolean) => {
-    controller.pinned = value;
+    state = { ...state, pinned: value };
     render();
   };
 
   const hide = () => {
-    controller.visible = false;
-    controller.bubble = null;
-    controller.pinned = false;
+    state = { ...state, visible: false, bubble: null, pinned: false };
     render();
   };
 
@@ -67,31 +65,33 @@ export function createBubbleHost(): BubbleHandle {
 
   return {
     show(props) {
-      controller.visible = true;
-      controller.bubble = props;
+      state = { ...state, visible: true, bubble: props };
       render();
     },
     showTrigger(position, label, onClick) {
-      controller.trigger = { position, label, onClick };
+      state = { ...state, trigger: { position, label, onClick } };
       render();
     },
     hideTrigger() {
-      controller.trigger = null;
+      state = { ...state, trigger: null };
       render();
     },
     hide,
     updateStream(chunk) {
-      if (!controller.bubble) return;
-      controller.bubble = {
-        ...controller.bubble,
-        translatedText: chunk.translatedText ?? controller.bubble.translatedText,
-        state: chunk.isError ? "error" : controller.bubble.state === "streaming" ? "streaming" : controller.bubble.state,
-        errorMessage: chunk.errorMessage,
+      if (!state.bubble) return;
+      state = {
+        ...state,
+        bubble: {
+          ...state.bubble,
+          translatedText: chunk.translatedText ?? state.bubble.translatedText,
+          state: chunk.isError ? "error" : state.bubble.state === "streaming" ? "streaming" : state.bubble.state,
+          errorMessage: chunk.errorMessage,
+        },
       };
       render();
     },
-    isVisible: () => controller.visible,
-    isPinned: () => controller.pinned,
+    isVisible: () => state.visible,
+    isPinned: () => state.pinned,
     unpin: () => setPinned(false),
     setTheme(theme: string) {
       if (theme === 'system') {

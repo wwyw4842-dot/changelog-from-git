@@ -32,7 +32,7 @@ export function registerTranslationHandlers(router: MessageRouter): void {
       const message = error instanceof Error ? error.message : String(error);
       const fallback = {
         originalText: req.text,
-        translatedText: `翻译失败: ${message}`,
+        translatedText: "",
         provider: req.providerId || settings.primaryProvider,
         isError: true,
         errorMessage: message,
