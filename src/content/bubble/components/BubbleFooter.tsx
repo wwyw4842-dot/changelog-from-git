@@ -7,6 +7,10 @@ export interface BubbleFooterProps {
   onCopyTarget?: () => void;
   /** 朗读原文 */
   onSpeak?: () => void;
+  /** 当前是否正在朗读 */
+  isSpeaking?: boolean;
+  /** 停止朗读 */
+  onStop?: () => void;
   /** 加入生词本 */
   onSave?: () => void;
   /** 发起深度解读 */
@@ -42,9 +46,15 @@ export function BubbleFooter(props: BubbleFooterProps) {
       <ActionBtn onClick={props.onCopyTarget} hint="copy target">
         复制
       </ActionBtn>
-      <ActionBtn onClick={props.onSpeak} hint="speak">
-        朗读
-      </ActionBtn>
+      {props.isSpeaking ? (
+        <ActionBtn onClick={props.onStop} hint="stop speaking">
+          停止
+        </ActionBtn>
+      ) : (
+        <ActionBtn onClick={props.onSpeak} hint="speak">
+          朗读
+        </ActionBtn>
+      )}
       <ActionBtn onClick={props.onSave} hint="save">
         生词本
       </ActionBtn>

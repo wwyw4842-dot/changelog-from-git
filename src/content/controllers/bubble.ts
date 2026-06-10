@@ -45,10 +45,10 @@ export function createBubbleController({
       onCopyTarget: () => void navigator.clipboard?.writeText(params.translatedText),
       onSpeak: () => {
         const lang = detectLangHint(params.originalText);
-        void send("tts:speak", {
+        return send("tts:speak", {
           text: params.originalText,
           lang: lang === "auto" ? undefined : lang,
-        });
+        }).then(() => {});
       },
       onStop: () => void send("tts:stop"),
       onSave: () => void saveVocabulary(params.originalText),

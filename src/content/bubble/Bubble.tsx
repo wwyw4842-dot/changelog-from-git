@@ -28,7 +28,7 @@ export interface BubbleProps {
   fontSize?: number;
   onCopySource?: () => void;
   onCopyTarget?: () => void;
-  onSpeak?: () => void;
+  onSpeak?: () => Promise<void>;
   onStop?: () => void;
   onSave?: () => void;
   onRetry?: () => void;
@@ -94,10 +94,25 @@ function BubbleCard(props: CardProps) {
     fontSize = 14,
   } = props;
   const [showDetails, setShowDetails] = useState(false);
-  // 定位 / 视口收敛 / header 拖拽都封装在 hook 里
+  const [speaking, setSpeaking] = useState(false);
   const { style, startDrag } = useBubblePosition(props.position, opacity, fontSize);
 
   const hasDetails = hasDeepDetails({ explanation, examples, partOfSpeech, alternatives });
+
+  const handleSpeak = props.onSpeak
+    ? () => {
+        if (speaking) return;
+        setSpeaking(true);
+        props.onSpeak!().finally(() => setSpeaking(false));
+      }
+    : undefined;
+
+  const handleStop = props.onStop
+    ? () => {
+        props.onStop!();
+        setSpeaking(false);
+      }
+    : undefined;
 
   return (
     <div style={style} className={UI.bubble} onMouseDown={(e) => e.stopPropagation()}>
@@ -143,7 +158,9 @@ function BubbleCard(props: CardProps) {
 
       <BubbleFooter
         onCopyTarget={props.onCopyTarget}
-        onSpeak={props.onSpeak}
+        onSpeak={handleSpeak}
+        isSpeaking={speaking}
+        onStop={handleStop}
         onSave={props.onSave}
         onDeep={props.onDeep}
         onRetry={props.onRetry}
