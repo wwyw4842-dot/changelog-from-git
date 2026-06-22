@@ -98,10 +98,18 @@ export const MessageEnvelopeSchema = z
   })
   .strict();
 
+export const OcrRecognizeSchema = z
+  .object({
+    src: z.string(),
+    lang: z.string().optional(),
+  })
+  .strict();
+
 export const MessagePayloadSchemas = {
   "settings:update": SettingsPatchSchema,
   "translate:request": TranslationRequestSchema,
   "translate:selection": TranslationSelectionRequestSchema,
+  "ocr:recognize": OcrRecognizeSchema,
 } as const;
 
 export const GoogleTranslateResponseSchema = z

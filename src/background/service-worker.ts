@@ -5,6 +5,7 @@ import { registerSettingsHandlers } from "./handlers/settings";
 import { registerTranslationHandlers } from "./handlers/translation";
 import { registerVocabularyHandlers } from "./handlers/vocabulary";
 import { registerTtsHandlers } from "./handlers/tts";
+import { registerOcrHandlers } from "./handlers/ocr";
 import { registerStreamHandler } from "./handlers/stream";
 
 const router = new MessageRouter();
@@ -87,6 +88,7 @@ registerSettingsHandlers(router);
 registerTranslationHandlers(router);
 registerVocabularyHandlers(router);
 registerTtsHandlers(router);
+registerOcrHandlers(router);
 router.attach();
 
 registerStreamHandler();

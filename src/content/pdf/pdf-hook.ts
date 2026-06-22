@@ -1,12 +1,18 @@
 import { send } from "@shared/messaging";
 import type { Settings } from "@shared/types";
+import { createLimiter, type Limiter } from "@shared/concurrency";
 import { observePdfTextLayers } from "./pdf-detector";
+
+// 与沉浸式翻译一致，PDF 文本层逐层翻译同样需要限流，
+// 防止大文档一次性涌入大量请求触发后端限流。
+const MAX_CONCURRENCY = 3;
 
 interface PdfState {
   enabled: boolean;
   disposer: (() => void) | null;
   rendered: WeakSet<HTMLElement>;
   settings: Settings | null;
+  limiter: Limiter | null;
   inflight: Set<HTMLElement>;
 }
 
@@ -15,6 +21,7 @@ const state: PdfState = {
   disposer: null,
   rendered: new WeakSet(),
   settings: null,
+  limiter: null,
   inflight: new Set(),
 };
 
@@ -22,6 +29,7 @@ export function enablePdfMode(settings: Settings): void {
   if (state.enabled) return;
   state.enabled = true;
   state.settings = settings;
+  state.limiter = createLimiter(MAX_CONCURRENCY);
   state.disposer = observePdfTextLayers((layer) => {
     scheduleTranslate(layer);
   });
@@ -32,6 +40,7 @@ export function disablePdfMode(): void {
   state.enabled = false;
   state.disposer?.();
   state.disposer = null;
+  state.limiter = null;
   document
     .querySelectorAll("[data-polyglot-pdf-translation]")
     .forEach((el) => el.remove());
@@ -52,14 +61,17 @@ function scheduleTranslate(layer: HTMLElement): void {
 
 async function translatePdfLayer(layer: HTMLElement, text: string): Promise<void> {
   const settings = state.settings!;
+  const limiter = state.limiter;
   try {
-    const result = await send("translate:request", {
-      text,
-      from: "auto",
-      to: settings.targetLang || "zh-CN",
-      mode: "quick",
-      providerId: settings.immersiveDefaultEngine || settings.primaryProvider,
-    });
+    const run = () =>
+      send("translate:request", {
+        text,
+        from: "auto",
+        to: settings.targetLang || "zh-CN",
+        mode: "quick",
+        providerId: settings.immersiveDefaultEngine || settings.primaryProvider,
+      });
+    const result = limiter ? await limiter(run) : await run();
     if (!state.enabled) return;
     renderOverlay(layer, result.translatedText);
   } catch (error) {

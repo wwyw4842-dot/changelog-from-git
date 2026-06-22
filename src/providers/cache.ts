@@ -15,10 +15,14 @@ const TTL_MS = 10 * 60 * 1000;
 const PERSIST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX = 200;
 const STORAGE_KEY = "translationCachePersist";
+// 持久化写盘防抖窗口。连续翻译（如滚动长文）时合并写操作，
+// 避免触碰 chrome.storage.local 的 MAX_WRITE_OPERATIONS_PER_MINUTE/HOUR 配额。
+const PERSIST_DEBOUNCE_MS = 2000;
 
 export class TranslationCache {
   private map = new Map<string, CacheEntry>();
   private hydrated = false;
+  private persistTimer: ReturnType<typeof setTimeout> | null = null;
 
   private key(providerId: string, from: string, to: string, mode: string, text: string): string {
     return `${providerId}::${from}::${to}::${mode}::${text}`;
@@ -46,13 +50,25 @@ export class TranslationCache {
 
   private schedulePersist(): void {
     if (typeof chrome === "undefined" || !chrome.storage?.local) return;
+    if (this.persistTimer) return; // 已有挂起的写盘任务，等其触发即可（前沿后合并）
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      void this.flush();
+    }, PERSIST_DEBOUNCE_MS);
+  }
+
+  /** 立即把当前缓存快照写入 chrome.storage.local。 */
+  private async flush(): Promise<void> {
+    if (typeof chrome === "undefined" || !chrome.storage?.local) return;
     const records: PersistedCacheRecord[] = [];
     for (const [key, entry] of this.map.entries()) {
       records.push({ key, data: entry.data, ts: entry.ts });
     }
-    chrome.storage.local.set({ [STORAGE_KEY]: records }).catch((error) => {
+    try {
+      await chrome.storage.local.set({ [STORAGE_KEY]: records });
+    } catch (error) {
       console.warn("[polyglot] cache persist failed", error);
-    });
+    }
   }
 
   get(providerId: string, from: string, to: string, mode: string, text: string): TranslationResult | null {
@@ -87,6 +103,10 @@ export class TranslationCache {
 
   clear(): void {
     this.map.clear();
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer);
+      this.persistTimer = null;
+    }
     if (typeof chrome !== "undefined" && chrome.storage?.local) {
       chrome.storage.local.remove(STORAGE_KEY).catch(() => undefined);
     }

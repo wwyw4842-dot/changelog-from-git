@@ -96,6 +96,7 @@ export default defineConfig({
         sidepanel: "src/sidepanel/sidepanel.html",
         popup: "src/popup/popup.html",
         options: "src/options/options.html",
+        offscreen: "src/offscreen/offscreen.html",
       },
     },
   },

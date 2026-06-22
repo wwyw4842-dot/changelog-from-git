@@ -1,5 +1,5 @@
 import { normalizeText } from "@shared/utils";
-import { recognizeImage } from "../ocr/ocr";
+import { send } from "@shared/messaging";
 import type { BubbleHandle } from "../bubble/BubbleHost";
 import type { SettingsAccessor, ShowCardParams } from "./types";
 
@@ -87,7 +87,9 @@ export function createShortcutsController({
       position,
     });
     try {
-      const text = normalizeText(await recognizeImage(imageUrl));
+      // OCR 在后台触发的 offscreen 文档中执行，绕过宿主页 CSP。
+      const { text: ocrText } = await send("ocr:recognize", { src: imageUrl });
+      const text = normalizeText(ocrText);
       if (!text) throw new Error("未识别到文字");
       await translate(text);
     } catch (error) {

@@ -47,6 +47,7 @@ export type ChannelMap = {
   "stats:daily": { req: void; resp: ActivityStats };
   "stats:year": { req: void; resp: ActivityDay[] };
   "vocabulary:words": { req: void; resp: string[] };
+  "ocr:recognize": { req: { src: string; lang?: string }; resp: { text: string } };
 };
 
 export type Channel = keyof ChannelMap;

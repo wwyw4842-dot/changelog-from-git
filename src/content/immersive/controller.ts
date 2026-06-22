@@ -1,24 +1,39 @@
 import { send } from "@shared/messaging";
 import type { Settings } from "@shared/types";
+import { createLimiter, type Limiter } from "@shared/concurrency";
 import { collectBlocks, markTranslationHost, clearImmersive, type ImmersiveBlock } from "./scanner";
 
-const BATCH_SIZE = 6;
+// 同时在途的翻译请求上限。对速率限制严格的 LLM 提供商保持较小并发，
+// 避免一次性发起多路流式请求触发 429 / 连接重置。
+const MAX_CONCURRENCY = 3;
 const OBSERVER_ROOT_MARGIN = "600px";
+// DOM 变更后合并扫描的防抖窗口，避免 SPA 频繁渲染导致的高频重扫。
+const RESCAN_DEBOUNCE_MS = 400;
 
 interface ImmersiveState {
   enabled: boolean;
   observer: IntersectionObserver | null;
+  mutationObserver: MutationObserver | null;
+  rescanTimer: ReturnType<typeof setTimeout> | null;
   settings: Settings | null;
+  limiter: Limiter | null;
+  observed: WeakSet<HTMLElement>;
   translationCache: Map<HTMLElement, HTMLElement>;
   inflight: Set<HTMLElement>;
+  total: number;
 }
 
 const state: ImmersiveState = {
   enabled: false,
   observer: null,
+  mutationObserver: null,
+  rescanTimer: null,
   settings: null,
+  limiter: null,
+  observed: new WeakSet(),
   translationCache: new Map(),
   inflight: new Set(),
+  total: 0,
 };
 
 let toolbar: HTMLDivElement | null = null;
@@ -27,23 +42,23 @@ export async function enableImmersive(settings: Settings): Promise<void> {
   if (state.enabled) return;
   state.enabled = true;
   state.settings = settings;
-
-  const blocks = collectBlocks();
-  if (!blocks.length) {
-    state.enabled = false;
-    return;
-  }
+  state.limiter = createLimiter(MAX_CONCURRENCY);
 
   state.observer = new IntersectionObserver(onIntersection, {
     rootMargin: OBSERVER_ROOT_MARGIN,
   });
 
-  blocks.forEach((block) => {
-    block.node.setAttribute("data-polyglot-original", "1");
-    state.observer!.observe(block.node);
-  });
+  const found = observeNewBlocks(collectBlocks());
+  if (!found) {
+    disableImmersive();
+    return;
+  }
 
-  showToolbar(blocks.length);
+  // 持续监听 DOM 变更，捕获 SPA / 无限滚动（Twitter、Reddit 等）动态插入的内容。
+  state.mutationObserver = new MutationObserver(scheduleRescan);
+  state.mutationObserver.observe(document.body, { childList: true, subtree: true });
+
+  showToolbar(state.total);
 }
 
 export function disableImmersive(): void {
@@ -51,9 +66,18 @@ export function disableImmersive(): void {
   state.enabled = false;
   state.observer?.disconnect();
   state.observer = null;
+  state.mutationObserver?.disconnect();
+  state.mutationObserver = null;
+  if (state.rescanTimer) {
+    clearTimeout(state.rescanTimer);
+    state.rescanTimer = null;
+  }
+  state.limiter = null;
+  state.observed = new WeakSet();
   clearImmersive();
   state.translationCache.clear();
   state.inflight.clear();
+  state.total = 0;
   toolbar?.remove();
   toolbar = null;
 }
@@ -62,49 +86,73 @@ export function isImmersiveActive(): boolean {
   return state.enabled;
 }
 
+// 将尚未跟踪的块挂到 IntersectionObserver 上，返回本次新增数量。
+function observeNewBlocks(blocks: ImmersiveBlock[]): number {
+  if (!state.observer) return 0;
+  let added = 0;
+  for (const block of blocks) {
+    if (state.observed.has(block.node)) continue;
+    if (state.translationCache.has(block.node) || state.inflight.has(block.node)) continue;
+    state.observed.add(block.node);
+    block.node.setAttribute("data-polyglot-original", "1");
+    state.observer.observe(block.node);
+    added += 1;
+  }
+  if (added) {
+    state.total += added;
+    updateToolbar(state.total);
+  }
+  return added;
+}
+
+function scheduleRescan(): void {
+  if (!state.enabled) return;
+  if (state.rescanTimer) clearTimeout(state.rescanTimer);
+  state.rescanTimer = setTimeout(() => {
+    state.rescanTimer = null;
+    if (!state.enabled) return;
+    observeNewBlocks(collectBlocks());
+  }, RESCAN_DEBOUNCE_MS);
+}
+
 function onIntersection(entries: IntersectionObserverEntry[]): void {
-  const pending: ImmersiveBlock[] = [];
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
     const node = entry.target as HTMLElement;
     if (state.translationCache.has(node) || state.inflight.has(node)) continue;
     const text = (node.innerText || node.textContent || "").trim().replace(/\s+/g, " ");
-    if (text) pending.push({ node, text });
-  }
-  if (!pending.length) return;
-  for (let i = 0; i < pending.length; i += BATCH_SIZE) {
-    const batch = pending.slice(i, i + BATCH_SIZE);
-    void translateBatch(batch);
+    if (!text) continue;
+    // 一旦进入可视区即停止观察，交给限流队列处理，避免重复触发。
+    state.observer?.unobserve(node);
+    void translateBlock({ node, text });
   }
 }
 
-async function translateBatch(batch: ImmersiveBlock[]): Promise<void> {
-  if (!state.settings) return;
+async function translateBlock(block: ImmersiveBlock): Promise<void> {
+  if (!state.settings || !state.limiter) return;
   const settings = state.settings;
   const targetLang = settings.targetLang || "zh-CN";
   const providerId = settings.immersiveDefaultEngine || settings.primaryProvider;
 
-  await Promise.all(
-    batch.map(async (block) => {
-      state.inflight.add(block.node);
-      try {
-        const result = await send("translate:request", {
-          text: block.text,
-          from: "auto",
-          to: targetLang,
-          mode: "quick",
-          providerId,
-        });
-        if (!state.enabled) return;
-        renderTranslation(block.node, result.translatedText);
-      } catch (error) {
-        if (!state.enabled) return;
-        renderTranslation(block.node, `[翻译失败: ${(error as Error).message}]`, true);
-      } finally {
-        state.inflight.delete(block.node);
-      }
-    })
-  );
+  state.inflight.add(block.node);
+  try {
+    const result = await state.limiter(() =>
+      send("translate:request", {
+        text: block.text,
+        from: "auto",
+        to: targetLang,
+        mode: "quick",
+        providerId,
+      })
+    );
+    if (!state.enabled) return;
+    renderTranslation(block.node, result.translatedText);
+  } catch (error) {
+    if (!state.enabled) return;
+    renderTranslation(block.node, `[翻译失败: ${(error as Error).message}]`, true);
+  } finally {
+    state.inflight.delete(block.node);
+  }
 }
 
 function renderTranslation(
@@ -164,6 +212,7 @@ function showToolbar(total: number): void {
   ].join(";");
 
   const info = document.createElement("span");
+  info.setAttribute("data-polyglot-immersive-count", "1");
   info.textContent = `沉浸式 · 共 ${total} 段`;
   info.style.opacity = "0.75";
   const close = document.createElement("button");
@@ -174,4 +223,9 @@ function showToolbar(total: number): void {
 
   toolbar.append(info, close);
   document.documentElement.appendChild(toolbar);
+}
+
+function updateToolbar(total: number): void {
+  const info = toolbar?.querySelector<HTMLSpanElement>("[data-polyglot-immersive-count]");
+  if (info) info.textContent = `沉浸式 · 共 ${total} 段`;
 }

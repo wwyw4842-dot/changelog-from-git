@@ -7,8 +7,12 @@ export async function addHistory(entry: HistoryEntry): Promise<number> {
   const id = (await db.history.add(entry)) as number;
   const count = await db.history.count();
   if (count > HISTORY_LIMIT) {
-    const extras = await db.history.orderBy("ts").limit(count - HISTORY_LIMIT).toArray();
-    await db.history.bulkDelete(extras.map((e) => e.id!).filter(Boolean));
+    // 只取最旧的多余记录的主键再删除，避免把整批记录读入内存。
+    const staleKeys = await db.history
+      .orderBy("ts")
+      .limit(count - HISTORY_LIMIT)
+      .primaryKeys();
+    if (staleKeys.length) await db.history.bulkDelete(staleKeys);
   }
   return id;
 }

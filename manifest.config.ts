@@ -29,6 +29,10 @@ export default defineManifest({
     service_worker: "src/background/service-worker.ts",
     type: "module",
   },
+  // tesseract.js 在 offscreen 文档中使用 WebAssembly，MV3 需显式放行。
+  content_security_policy: {
+    extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+  },
   content_scripts: [
     {
       matches: ["<all_urls>"],
