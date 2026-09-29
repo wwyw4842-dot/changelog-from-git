@@ -14,10 +14,12 @@ function emptyDay(date: string): ActivityDay {
 }
 
 export async function bumpActivity(field: ActivityField, amount = 1): Promise<void> {
-  const date = dayKey();
-  const existing = (await db.activity.get(date)) ?? emptyDay(date);
-  existing[field] = (existing[field] || 0) + amount;
-  await db.activity.put(existing);
+  return db.transaction("rw", db.activity, async () => {
+    const date = dayKey();
+    const existing = (await db.activity.get(date)) ?? emptyDay(date);
+    existing[field] = (existing[field] || 0) + amount;
+    await db.activity.put(existing);
+  });
 }
 
 export async function getDailyStats(): Promise<ActivityStats> {
