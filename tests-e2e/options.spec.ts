@@ -31,8 +31,12 @@ test.describe("Polyglot Options Page E2E Tests", () => {
     // Toggle ielts mode
     await ieltsCheckbox.click();
 
-    // Wait for React to update checkbox state, then verify
-    await expect(ieltsCheckbox).toBeChecked({ checked: !isCheckedBefore, timeout: 3000 });
-    await expect(saveToast).toBeVisible({ timeout: 5000 });
+    // Verify persisted settings, then reload to verify the actual saved state.
+    await expect.poll(() => page.evaluate(async () => {
+      const response = await chrome.runtime.sendMessage({ type: "settings:get" });
+      return response.data.ieltsMode;
+    })).toBe(!isCheckedBefore);
+    await page.reload();
+    await expect(ieltsCheckbox).toBeChecked({ checked: !isCheckedBefore });
   });
 });
