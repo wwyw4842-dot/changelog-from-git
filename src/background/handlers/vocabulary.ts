@@ -14,7 +14,8 @@ import { generateVocabularyExamples } from "../vocab-examples";
 
 export function registerVocabularyHandlers(router: MessageRouter): void {
   router.on("vocabulary:add", async (payload) => {
-    const entry = await addVocabulary({
+    const entry = await db.transaction("rw", db.vocabulary, db.activity, async () => {
+      const added = await addVocabulary({
       word: payload.word,
       translation: payload.translation,
       context: payload.context,
@@ -22,7 +23,9 @@ export function registerVocabularyHandlers(router: MessageRouter): void {
       tags: payload.tags,
       examples: payload.examples,
     });
-    void bumpActivity("vocabAdded");
+      await bumpActivity("vocabAdded");
+      return added;
+    });
     if (entry.id && !entry.examples?.length) {
       void enrichVocabularyExamplesAfterAdd(entry.id);
     }
@@ -30,9 +33,11 @@ export function registerVocabularyHandlers(router: MessageRouter): void {
   });
   router.on("vocabulary:list", async (payload) => listVocabulary(payload));
   router.on("vocabulary:review", async ({ id, quality }) => {
-    const entry = await reviewVocabulary(id, quality);
-    void bumpActivity("reviews");
-    return entry;
+    return db.transaction("rw", db.vocabulary, db.activity, async () => {
+      const entry = await reviewVocabulary(id, quality);
+      await bumpActivity("reviews");
+      return entry;
+    });
   });
   router.on("vocabulary:remove", async ({ id }) => removeVocabulary(id));
   router.on("vocabulary:update", async ({ id, patch }) => updateVocabulary(id, patch));
