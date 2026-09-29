@@ -36,6 +36,8 @@ test.describe("Polyglot Options Page E2E Tests", () => {
       const response = await chrome.runtime.sendMessage({ type: "settings:get" });
       return response.data.ieltsMode;
     })).toBe(!isCheckedBefore);
+    await expect(ieltsCheckbox).toBeChecked({ checked: !isCheckedBefore });
+    await expect(saveToast).toBeVisible({ timeout: 5000 });
     await page.reload();
     await expect(ieltsCheckbox).toBeChecked({ checked: !isCheckedBefore });
   });
