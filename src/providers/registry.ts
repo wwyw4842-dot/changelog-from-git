@@ -85,6 +85,7 @@ export async function translateViaChain(
       }
       return final;
     } catch (error) {
+      if (options.signal?.aborted) throw error;
       console.warn(`[polyglot] provider ${providerId} failed:`, error);
       lastError = error;
     }

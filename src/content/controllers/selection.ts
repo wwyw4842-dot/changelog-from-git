@@ -12,6 +12,7 @@ export interface SelectionController {
   handleSelection: () => void;
   translate: (text: string, options?: { openSidePanel?: boolean }) => Promise<void>;
   translateDeep: (text: string) => Promise<void>;
+  cancelDeep: () => void;
   saveVocabulary: (text: string) => Promise<void>;
   getSelectionPosition: () => { x: number; y: number } | null;
   retryLast: () => void;
@@ -30,6 +31,7 @@ export function createSelectionController({
 }): SelectionController {
   let altKeyDown = false;
   let activePort: chrome.runtime.Port | null = null;
+  let streamGeneration = 0;
   let lastRequest: {
     text: string;
     from: string;
@@ -159,13 +161,8 @@ export function createSelectionController({
       position,
     });
 
-    if (activePort) {
-      try {
-        activePort.disconnect();
-      } catch {
-        // ignore
-      }
-    }
+    cancelDeep();
+    const requestGeneration = streamGeneration;
 
     let port: chrome.runtime.Port;
     try {
@@ -187,6 +184,7 @@ export function createSelectionController({
     let streamFinished = false;
 
     port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
+      if (requestGeneration !== streamGeneration || activePort !== port) return;
       if (message.type === "chunk") {
         const chunk = message.payload as Partial<TranslationResult>;
         host.updateStream({ translatedText: chunk.translatedText });
@@ -215,6 +213,7 @@ export function createSelectionController({
       }
     });
     port.onDisconnect.addListener(() => {
+      if (requestGeneration !== streamGeneration || activePort !== port) return;
       if (activePort === port) activePort = null;
       if (!streamFinished) {
         host.updateStream({
@@ -238,6 +237,23 @@ export function createSelectionController({
         state: "error",
         position,
       });
+    }
+  }
+
+  function cancelDeep(): void {
+    streamGeneration += 1;
+    const port = activePort;
+    activePort = null;
+    if (!port) return;
+    try {
+      port.postMessage({ type: "translate:stream:abort" });
+    } catch {
+      // The worker may already be gone; disconnect still releases the port.
+    }
+    try {
+      port.disconnect();
+    } catch {
+      // Ignore a port already disconnected by the browser.
     }
   }
 
@@ -326,6 +342,7 @@ export function createSelectionController({
     handleSelection,
     translate,
     translateDeep,
+    cancelDeep,
     saveVocabulary,
     getSelectionPosition,
     retryLast,

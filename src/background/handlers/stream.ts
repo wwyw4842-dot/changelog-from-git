@@ -3,6 +3,7 @@ import { getSettings } from "@shared/storage/settings";
 import { mergeLlmCredentials } from "@shared/llm-credentials";
 import { translateViaChain } from "@providers/registry";
 import { streamChat, type ChatMessage } from "@providers/llm/chat";
+import { acquireRequestBudget } from "../request-budget";
 
 interface StreamRequestMessage {
   type: "translate:stream";
@@ -23,24 +24,39 @@ type StreamPortMessage = StreamRequestMessage | StreamAbortMessage | LLMPromptMe
 export function registerStreamHandler(): void {
   chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== "polyglot-stream") return;
-    const controller = new AbortController();
+    let controller: AbortController | null = null;
     let disconnected = false;
     port.onDisconnect.addListener(() => {
       disconnected = true;
-      controller.abort();
+      controller?.abort();
     });
     port.onMessage.addListener(async (rawMessage: unknown) => {
       const message = rawMessage as StreamPortMessage;
       if (message.type === "translate:stream:abort") {
-        controller.abort();
+        controller?.abort();
         return;
       }
-      if (message.type === "llm:prompt") {
-        await handlePromptStream(port, message, controller, () => disconnected);
-        return;
+      if (message.type !== "translate:stream" && message.type !== "llm:prompt") return;
+      controller?.abort();
+      const requestController = new AbortController();
+      controller = requestController;
+      const stale = (): boolean =>
+        disconnected || controller !== requestController || requestController.signal.aborted;
+      let release: (() => void) | undefined;
+      try {
+        release = await acquireRequestBudget(requestController.signal);
+        if (stale()) return;
+        if (message.type === "llm:prompt") {
+          await handlePromptStream(port, message, requestController, stale);
+        } else {
+          await handleTranslationStream(port, message, requestController, stale);
+        }
+      } catch (error) {
+        postStreamError(port, error, stale);
+      } finally {
+        release?.();
+        if (controller === requestController) controller = null;
       }
-      if (message.type !== "translate:stream") return;
-      await handleTranslationStream(port, message, controller, () => disconnected);
     });
   });
 }
@@ -97,6 +113,7 @@ async function handleTranslationStream(
         }
       },
     });
+    if (isDisconnected()) return;
     await addHistory({ ...result, from: request.from, to: request.to, ts: Date.now() });
     if (!isDisconnected()) {
       port.postMessage({ type: "done", payload: result });

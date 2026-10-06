@@ -15,6 +15,7 @@ interface InputState {
   repositionBound: (() => void) | null;
   observer: IntersectionObserver | null;
   targetVisible: boolean;
+  generation: number;
 }
 
 const state: InputState = {
@@ -31,15 +32,41 @@ const state: InputState = {
   repositionBound: null,
   observer: null,
   targetVisible: true,
+  generation: 0,
 };
 
 const ACTIONS: Array<{ id: string; label: string; prompt: string }> = [
-  { id: "polish", label: "润色", prompt: "Polish the following text to be more natural and fluent while preserving its meaning. Return ONLY the polished text." },
-  { id: "grammar", label: "纠错", prompt: "Fix grammar, spelling and punctuation in the following text. Return ONLY the corrected text." },
-  { id: "translate-en", label: "→ EN", prompt: "Translate the following text to natural idiomatic English. Return ONLY the translation." },
+  {
+    id: "polish",
+    label: "润色",
+    prompt:
+      "Polish the following text to be more natural and fluent while preserving its meaning. Return ONLY the polished text.",
+  },
+  {
+    id: "grammar",
+    label: "纠错",
+    prompt:
+      "Fix grammar, spelling and punctuation in the following text. Return ONLY the corrected text.",
+  },
+  {
+    id: "translate-en",
+    label: "→ EN",
+    prompt:
+      "Translate the following text to natural idiomatic English. Return ONLY the translation.",
+  },
   { id: "translate-zh", label: "→ 中文", prompt: "把下面文本翻译成地道的简体中文。只返回译文。" },
-  { id: "expand", label: "扩写", prompt: "Expand the following text by adding more detail and examples while keeping the original language and tone." },
-  { id: "shorten", label: "精简", prompt: "Rewrite the following text in fewer words, keeping the original language and essential meaning." },
+  {
+    id: "expand",
+    label: "扩写",
+    prompt:
+      "Expand the following text by adding more detail and examples while keeping the original language and tone.",
+  },
+  {
+    id: "shorten",
+    label: "精简",
+    prompt:
+      "Rewrite the following text in fewer words, keeping the original language and essential meaning.",
+  },
 ];
 
 export function enableInputEnhance(settings: Settings): void {
@@ -54,6 +81,7 @@ export function enableInputEnhance(settings: Settings): void {
 export function disableInputEnhance(): void {
   if (!state.enabled) return;
   state.enabled = false;
+  cancelActivePort();
   document.removeEventListener("focusin", onFocusIn, true);
   document.removeEventListener("focusout", onFocusOut, true);
   detachRepositionListeners();
@@ -62,8 +90,6 @@ export function disableInputEnhance(): void {
   removeToolbar();
   state.targetElement = null;
   state.toolbarExpanded = false;
-  state.activePort?.disconnect();
-  state.activePort = null;
 }
 
 function isEditable(element: EventTarget | null): element is HTMLElement {
@@ -77,6 +103,7 @@ function isEditable(element: EventTarget | null): element is HTMLElement {
 
 function onFocusIn(event: FocusEvent): void {
   if (!isEditable(event.target)) return;
+  if (state.targetElement !== event.target) cancelActivePort();
   state.targetElement = event.target as HTMLElement;
   state.toolbarExpanded = false;
   state.targetVisible = true;
@@ -88,8 +115,11 @@ function onFocusIn(event: FocusEvent): void {
 function onFocusOut(event: FocusEvent): void {
   const related = event.relatedTarget;
   if (related instanceof HTMLElement && state.toolbar?.contains(related)) return;
+  const target = state.targetElement;
   setTimeout(() => {
+    if (state.targetElement !== target) return;
     if (!document.activeElement || !isEditable(document.activeElement)) {
+      cancelActivePort();
       removeToolbar();
       detachRepositionListeners();
       detachVisibilityObserver();
@@ -195,7 +225,10 @@ function showToolbar(forceExpanded: boolean): void {
     expand.textContent = "✨ 快捷";
     expand.style.cssText =
       "background: transparent; border: 0; color: inherit; cursor: pointer; font: inherit; padding: 3px 10px; border-radius: 999px;";
-    expand.addEventListener("mouseenter", () => (expand.style.background = "rgba(96,165,250,0.15)"));
+    expand.addEventListener(
+      "mouseenter",
+      () => (expand.style.background = "rgba(96,165,250,0.15)")
+    );
     expand.addEventListener("mouseleave", () => (expand.style.background = "transparent"));
     expand.addEventListener("mousedown", (e) => e.preventDefault());
     expand.addEventListener("click", () => {
@@ -242,7 +275,12 @@ function setUndo(text: string): void {
 
 function isElementInViewport(element: HTMLElement): boolean {
   const rect = element.getBoundingClientRect();
-  return rect.bottom > 0 && rect.right > 0 && rect.top < window.innerHeight && rect.left < window.innerWidth;
+  return (
+    rect.bottom > 0 &&
+    rect.right > 0 &&
+    rect.top < window.innerHeight &&
+    rect.left < window.innerWidth
+  );
 }
 
 function requestReposition(): void {
@@ -305,11 +343,13 @@ function detachRepositionListeners(): void {
 
 async function runAction(prompt: string): Promise<void> {
   if (!state.targetElement || !state.settings) return;
-  const current = getText(state.targetElement);
+  const target = state.targetElement;
+  const current = getText(target);
   if (!current.trim()) return;
   state.originalText = current;
 
-  state.activePort?.disconnect();
+  cancelActivePort();
+  const requestGeneration = state.generation;
 
   let port: chrome.runtime.Port;
   try {
@@ -323,30 +363,42 @@ async function runAction(prompt: string): Promise<void> {
   let finished = false;
 
   port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
+    if (
+      requestGeneration !== state.generation ||
+      state.activePort !== port ||
+      state.targetElement !== target
+    )
+      return;
     if (message.type === "chunk") {
       const chunk = message.payload as { translatedText?: string };
       if (chunk.translatedText) {
         accumulated = chunk.translatedText;
-        replaceText(state.targetElement!, accumulated);
+        replaceText(target, accumulated);
       }
     } else if (message.type === "done") {
       finished = true;
       const result = message.payload as { translatedText?: string };
       if (result?.translatedText) {
-        replaceText(state.targetElement!, result.translatedText);
+        replaceText(target, result.translatedText);
         setUndo(state.originalText);
         state.toolbarExpanded = true;
         showToolbar(false);
       }
     } else if (message.type === "error") {
       finished = true;
-      replaceText(state.targetElement!, state.originalText);
+      replaceText(target, state.originalText);
     }
   });
   port.onDisconnect.addListener(() => {
+    if (
+      requestGeneration !== state.generation ||
+      state.activePort !== port ||
+      state.targetElement !== target
+    )
+      return;
     if (state.activePort === port) state.activePort = null;
-    if (!finished && state.targetElement) {
-      replaceText(state.targetElement, state.originalText);
+    if (!finished) {
+      replaceText(target, state.originalText);
     }
   });
 
@@ -362,7 +414,24 @@ async function runAction(prompt: string): Promise<void> {
   } catch (error) {
     finished = true;
     console.warn("[polyglot] input enhance post failed", mapChromeRuntimeError(error));
-    replaceText(state.targetElement, state.originalText);
+    replaceText(target, state.originalText);
+  }
+}
+
+function cancelActivePort(): void {
+  state.generation += 1;
+  const port = state.activePort;
+  state.activePort = null;
+  if (!port) return;
+  try {
+    port.postMessage({ type: "translate:stream:abort" });
+  } catch {
+    // The worker may already be gone.
+  }
+  try {
+    port.disconnect();
+  } catch {
+    // Ignore a port already disconnected by the browser.
   }
 }
 
