@@ -1,0 +1,289 @@
+
+ RUN  v2.1.9 /private/var/folders/ff/nb9jszvd3_1gj9sxxn66_y840000gn/T/gen04-changelog-pre-review-oow3lqxy
+
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ❯ src/content/inputEnhance/controller.test.ts (7 tests | 7 failed) 105ms
+   × input enhancement stream ownership > switching focus aborts the old stream without editing either target on late results 60ms
+     → expected 'partial' to be 'first' // Object.is equality
+   × input enhancement stream ownership > editing the same input cancels the stream and preserves the newer text 6ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × input enhancement stream ownership > does not overwrite a programmatic edit that emits no input event 13ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × input enhancement stream ownership > does not offer the previous input's undo when switching targets 13ms
+     → expected '润色纠错→ EN→ 中文扩写精简撤销' not to contain '撤销'
+   × input enhancement stream ownership > disabling clears pending blur callbacks 5ms
+     → expected "clearTimeout" to be called with arguments: [ { refed: true, …(4), …(1) } ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+   × input enhancement stream ownership > disconnects a settled done stream and ignores late chunks 3ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × input enhancement stream ownership > disconnects a settled error stream and ignores late chunks 2ms
+     → expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/controllers/selection.test.ts (4 tests | 4 failed) 9ms
+   × selection stream lifecycle > a quick request cancels an older deep stream and drops its late messages 5ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × selection stream lifecycle > a late quick result cannot reopen a closed or replaced card 2ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "fromCache": undefined,
+        "isError": undefined,
+        "originalText": "quick",
+        "phonetic": undefined,
+        "position": Object {
+          "x": 16,
+          "y": 16,
+        },
+        "provider": "test",
+        "state": "done",
+        "translatedText": "stale",
+      },
+    ]
+
+
+Number of calls: 1
+
+   × selection stream lifecycle > disconnects a settled done stream 0ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × selection stream lifecycle > disconnects a settled error stream 0ms
+     → expected "spy" to be called 1 times, but got 0 times
+ ❯ tests/bubble-host-lifecycle.test.ts (2 tests | 2 failed) 11ms
+   × bubble dismissal cancellation > cancels pending work on programmatic dismissal 9ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × bubble dismissal cancellation > cancels pending work on close button dismissal 1ms
+     → expected "spy" to be called 1 times, but got 0 times
+ ❯ src/providers/registry.test.ts (8 tests | 2 failed) 17ms
+   × translateViaChain > does not cache a late result from a provider that ignores cancellation 8ms
+     → promise resolved "{ originalText: ' hello ', …(2) }" instead of rejecting
+   × translateViaChain > drops late stream chunks and final cache writes after cancellation 1ms
+     → promise resolved "{ originalText: ' hello ', …(3) }" instead of rejecting
+ ✓ src/background/handlers/stream.test.ts (4 tests) 448ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/providers/registry.test.ts > translateViaChain > does not cache a late result from a provider that ignores cancellation
+AssertionError: promise resolved "{ originalText: ' hello ', …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- [Error: rejected promise]
++ Object {
++   "originalText": " hello ",
++   "provider": "test-late-abort",
++   "translatedText": "stale",
++ }
+
+ ❯ src/providers/registry.test.ts:200:25
+    198|     controller.abort();
+    199|     finish!(result("test-late-abort", "stale"));
+    200|     await expect(pending).rejects.toMatchObject({ name: "AbortError" }…
+       |                         ^
+    201|     await expect(translateViaChain(baseRequest, options)).resolves.toM…
+    202|       translatedText: "fresh",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+
+ FAIL  src/providers/registry.test.ts > translateViaChain > drops late stream chunks and final cache writes after cancellation
+AssertionError: promise resolved "{ originalText: ' hello ', …(3) }" instead of rejecting
+
+- Expected
++ Received
+
+- [Error: rejected promise]
++ Object {
++   "originalText": " hello ",
++   "provider": "test-late-stream",
++   "streamed": true,
++   "translatedText": "stale",
++ }
+
+ ❯ src/providers/registry.test.ts:224:5
+    222|         onChunk,
+    223|       })
+    224|     ).rejects.toMatchObject({ name: "AbortError" });
+       |     ^
+    225|     expect(onChunk).toHaveBeenCalledTimes(1);
+    226|     expect(onChunk).toHaveBeenCalledWith({ translatedText: "first", pr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/15]⎯
+
+ FAIL  src/content/controllers/selection.test.ts > selection stream lifecycle > a quick request cancels an older deep stream and drops its late messages
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/controllers/selection.test.ts:66:33
+     64|     });
+     65|     await controller.translate("new quick");
+     66|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     67|     showCard.mockClear();
+     68|     ports[0].emit({ type: "chunk", payload: { translatedText: "stale" …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/15]⎯
+
+ FAIL  src/content/controllers/selection.test.ts > selection stream lifecycle > a late quick result cannot reopen a closed or replaced card
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "fromCache": undefined,
+        "isError": undefined,
+        "originalText": "quick",
+        "phonetic": undefined,
+        "position": Object {
+          "x": 16,
+          "y": 16,
+        },
+        "provider": "test",
+        "state": "done",
+        "translatedText": "stale",
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/content/controllers/selection.test.ts:84:26
+     82|     resolve!({ originalText: "quick", translatedText: "stale", provide…
+     83|     await quick;
+     84|     expect(showCard).not.toHaveBeenCalled();
+       |                          ^
+     85|   });
+     86| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/15]⎯
+
+ FAIL  src/content/controllers/selection.test.ts > selection stream lifecycle > disconnects a settled done stream
+ FAIL  src/content/controllers/selection.test.ts > selection stream lifecycle > disconnects a settled error stream
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/controllers/selection.test.ts:93:33
+     91|       payload: { translatedText: "done", provider: "test", message: "f…
+     92|     });
+     93|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     94|     updateStream.mockClear();
+     95|     ports[0].emit({ type: "chunk", payload: { translatedText: "late" }…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/15]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > switching focus aborts the old stream without editing either target on late results
+AssertionError: expected 'partial' to be 'first' // Object.is equality
+
+Expected: "first"
+Received: "partial"
+
+ ❯ src/content/inputEnhance/controller.test.ts:70:25
+     68|     ports[0].emit({ type: "chunk", payload: { translatedText: "stale" …
+     69|     ports[0].emit({ type: "done", payload: { translatedText: "stale" }…
+     70|     expect(first.value).toBe("first");
+       |                         ^
+     71|     expect(second.value).toBe("second");
+     72|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/15]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > editing the same input cancels the stream and preserves the newer text
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/inputEnhance/controller.test.ts:78:33
+     76|     first.value = "user edit";
+     77|     first.dispatchEvent(new Event("input", { bubbles: true }));
+     78|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     79|     ports[0].emit({ type: "done", payload: { translatedText: "stale" }…
+     80|     expect(first.value).toBe("user edit");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/15]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > does not overwrite a programmatic edit that emits no input event
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/inputEnhance/controller.test.ts:87:33
+     85|     first.value = "application edit";
+     86|     ports[0].emit({ type: "done", payload: { translatedText: "stale" }…
+     87|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     88|     expect(first.value).toBe("application edit");
+     89|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/15]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > does not offer the previous input's undo when switching targets
+AssertionError: expected '润色纠错→ EN→ 中文扩写精简撤销' not to contain '撤销'
+
+Expected: "撤销"
+Received: "润色纠错→ EN→ 中文扩写精简撤销"
+
+ ❯ src/content/inputEnhance/controller.test.ts:95:86
+     93|     expect(document.querySelector("[data-polyglot-input-toolbar]")?.te…
+     94|     second.focus();
+     95|     expect(document.querySelector("[data-polyglot-input-toolbar]")?.te…
+       |                                                                                      ^
+     96|       "撤销"
+     97|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/15]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > disabling clears pending blur callbacks
+AssertionError: expected "clearTimeout" to be called with arguments: [ { refed: true, …(4), …(1) } ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ❯ src/content/inputEnhance/controller.test.ts:109:20
+    107|     const blurTimer = schedule.mock.results[blurIndex].value;
+    108|     disableInputEnhance();
+    109|     expect(cancel).toHaveBeenCalledWith(blurTimer);
+       |                    ^
+    110|     vi.advanceTimersByTime(120);
+    111|     expect(first.value).toBe("first");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/15]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > disconnects a settled done stream and ignores late chunks
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > disconnects a settled error stream and ignores late chunks
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/inputEnhance/controller.test.ts:116:33
+    114|   it.each(["done", "error"])("disconnects a settled %s stream and igno…
+    115|     ports[0].emit({ type, payload: { translatedText: "current" } });
+    116|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+    117|     ports[0].emit({ type: "chunk", payload: { translatedText: "stale" …
+    118|     expect(first.value).toBe(type === "done" ? "current" : "first");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/15]⎯
+
+ FAIL  tests/bubble-host-lifecycle.test.ts > bubble dismissal cancellation > cancels pending work on programmatic dismissal
+ FAIL  tests/bubble-host-lifecycle.test.ts > bubble dismissal cancellation > cancels pending work on close button dismissal
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ tests/bubble-host-lifecycle.test.ts:26:20
+     24|     if (mode === "programmatic") host.hide();
+     25|     else render.mock.calls[0][0].props.onClose();
+     26|     expect(cancel).toHaveBeenCalledTimes(1);
+       |                    ^
+     27|     expect(host.isVisible()).toBe(false);
+     28|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/15]⎯
+
+ Test Files  4 failed | 1 passed (5)
+      Tests  15 failed | 10 passed (25)
+   Start at  20:02:39
+   Duration  2.55s (transform 727ms, setup 0ms, collect 964ms, tests 590ms, environment 5.35s, prepare 351ms)
+

@@ -13,6 +13,7 @@ export function createShortcutsController({
   setAltKeyDown,
   translate,
   translateDeep,
+  cancelDeep,
   saveVocabulary,
   toggleImmersive,
   isWhitelisted,
@@ -22,6 +23,7 @@ export function createShortcutsController({
   setAltKeyDown: (value: boolean) => void;
   translate: (text: string, options?: { openSidePanel?: boolean }) => Promise<void>;
   translateDeep: (text: string) => Promise<void>;
+  cancelDeep: () => void;
   saveVocabulary: (text: string) => Promise<void>;
   toggleImmersive: (force?: boolean) => Promise<void>;
   isWhitelisted: () => boolean;
@@ -45,7 +47,10 @@ export function createShortcutsController({
     );
     document.addEventListener("keydown", (e) => {
       if (e.key === "Alt") setAltKeyDown(true);
-      if (e.key === "Escape" && host.isVisible()) host.hide();
+      if (e.key === "Escape" && host.isVisible()) {
+        cancelDeep();
+        host.hide();
+      }
     });
     document.addEventListener("keyup", (e) => {
       if (e.key === "Alt") setAltKeyDown(false);
@@ -54,19 +59,27 @@ export function createShortcutsController({
     chrome.runtime.onMessage.addListener((message) => {
       const envelope = message as { type?: string; payload?: { text?: string; enable?: boolean } };
       if (!envelope?.type) return;
-      if (envelope.type === "context:translate" || envelope.type === "command:translate-selection") {
+      if (
+        envelope.type === "context:translate" ||
+        envelope.type === "command:translate-selection"
+      ) {
         const sel = normalizeText(window.getSelection()?.toString() || "");
         const text = sel || envelope.payload?.text || "";
         if (text) void translate(text, { openSidePanel: envelope.type.startsWith("command:") });
       } else if (envelope.type === "command:translate-deep") {
         const text = normalizeText(window.getSelection()?.toString() || "");
         if (text) void translateDeep(text);
-      } else if (envelope.type === "command:translate-page" || envelope.type === "context:immersive") {
+      } else if (
+        envelope.type === "command:translate-page" ||
+        envelope.type === "context:immersive"
+      ) {
         void toggleImmersive();
       } else if (envelope.type === "immersive:toggle") {
         void toggleImmersive(envelope.payload?.enable);
       } else if (envelope.type === "context:addVocab") {
-        const text = normalizeText(window.getSelection()?.toString() || envelope.payload?.text || "");
+        const text = normalizeText(
+          window.getSelection()?.toString() || envelope.payload?.text || ""
+        );
         if (text) void saveVocabulary(text);
       } else if (envelope.type === "context:ocrImage") {
         if (lastContextImageUrl) void runOcr(lastContextImageUrl);

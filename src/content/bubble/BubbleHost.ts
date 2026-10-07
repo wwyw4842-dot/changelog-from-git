@@ -15,7 +15,7 @@ export interface BubbleHandle {
   setTheme(theme: string): void;
 }
 
-export function createBubbleHost(): BubbleHandle {
+export function createBubbleHost(onHide?: () => void): BubbleHandle {
   const hostElement = document.createElement("div");
   hostElement.id = "__polyglot_host__";
   hostElement.style.cssText = "all: initial; position: fixed; inset: 0; pointer-events: none; z-index: 2147483647;";
@@ -57,6 +57,7 @@ export function createBubbleHost(): BubbleHandle {
   };
 
   const hide = () => {
+    onHide?.();
     controller.visible = false;
     controller.bubble = null;
     controller.pinned = false;

@@ -5,11 +5,12 @@ import type { Settings } from "@shared/types";
 import { disableImmersive, enableImmersive, isImmersiveActive } from "./immersive/controller";
 import { enablePdfMode } from "./pdf/pdf-hook";
 import { isPdfPage } from "./pdf/pdf-detector";
-import { disableInputEnhance, enableInputEnhance, updateInputEnhanceSettings } from "./inputEnhance/controller";
 import {
-  disableVocabHighlight,
-  enableVocabHighlight,
-} from "./vocabHighlight/highlighter";
+  disableInputEnhance,
+  enableInputEnhance,
+  updateInputEnhanceSettings,
+} from "./inputEnhance/controller";
+import { disableVocabHighlight, enableVocabHighlight } from "./vocabHighlight/highlighter";
 import { createBubbleController } from "./controllers/bubble";
 import { createSelectionController, type SelectionController } from "./controllers/selection";
 import { createShortcutsController } from "./controllers/shortcuts";
@@ -45,6 +46,7 @@ async function bootstrap(): Promise<void> {
     setSettings,
     saveVocabulary: (text) => selectionController.saveVocabulary(text),
     translateDeep: (text) => selectionController.translateDeep(text),
+    cancelDeep: () => selectionController.cancelDeep(),
     retryLast: () => selectionController.retryLast(),
   });
 
@@ -58,7 +60,7 @@ async function bootstrap(): Promise<void> {
 
   installFeatureControllers(settings);
 
-  if (settings.theme && settings.theme !== 'system') {
+  if (settings.theme && settings.theme !== "system") {
     bubbleController.host.setTheme(settings.theme);
   }
 
@@ -74,6 +76,7 @@ async function bootstrap(): Promise<void> {
     setAltKeyDown: selectionController.setAltKeyDown,
     translate: selectionController.translate,
     translateDeep: selectionController.translateDeep,
+    cancelDeep: selectionController.cancelDeep,
     saveVocabulary: selectionController.saveVocabulary,
     toggleImmersive,
     isWhitelisted: isCurrentPageWhitelisted,

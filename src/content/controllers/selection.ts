@@ -12,6 +12,7 @@ export interface SelectionController {
   handleSelection: () => void;
   translate: (text: string, options?: { openSidePanel?: boolean }) => Promise<void>;
   translateDeep: (text: string) => Promise<void>;
+  cancelDeep: () => void;
   saveVocabulary: (text: string) => Promise<void>;
   getSelectionPosition: () => { x: number; y: number } | null;
   retryLast: () => void;
@@ -30,6 +31,7 @@ export function createSelectionController({
 }): SelectionController {
   let altKeyDown = false;
   let activePort: chrome.runtime.Port | null = null;
+  let streamGeneration = 0;
   let lastRequest: {
     text: string;
     from: string;
@@ -91,6 +93,8 @@ export function createSelectionController({
     const settings = getSettings();
     if (!settings) return;
     if (isWhitelisted()) return;
+    cancelDeep();
+    const requestGeneration = streamGeneration;
     host.hideTrigger();
     const position = getSelectionPosition() || { x: 16, y: 16 };
     const from = detectLangHint(text);
@@ -111,6 +115,7 @@ export function createSelectionController({
         mode: "quick",
         openSidePanel: options.openSidePanel,
       });
+      if (requestGeneration !== streamGeneration) return;
       showCard({
         originalText: result.originalText || text,
         translatedText: result.translatedText,
@@ -129,6 +134,7 @@ export function createSelectionController({
         }
       }
     } catch (error) {
+      if (requestGeneration !== streamGeneration) return;
       const err = mapChromeRuntimeError(error);
       showCard({
         originalText: text,
@@ -159,13 +165,8 @@ export function createSelectionController({
       position,
     });
 
-    if (activePort) {
-      try {
-        activePort.disconnect();
-      } catch {
-        // ignore
-      }
-    }
+    cancelDeep();
+    const requestGeneration = streamGeneration;
 
     let port: chrome.runtime.Port;
     try {
@@ -185,8 +186,17 @@ export function createSelectionController({
     }
     activePort = port;
     let streamFinished = false;
+    const closePort = (): void => {
+      if (activePort === port) activePort = null;
+      try {
+        port.disconnect();
+      } catch {
+        // A worker disconnect can race with settlement.
+      }
+    };
 
     port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
+      if (requestGeneration !== streamGeneration || activePort !== port) return;
       if (message.type === "chunk") {
         const chunk = message.payload as Partial<TranslationResult>;
         host.updateStream({ translatedText: chunk.translatedText });
@@ -205,6 +215,7 @@ export function createSelectionController({
           state: "done",
           position,
         });
+        closePort();
       } else if (message.type === "error") {
         streamFinished = true;
         const err = message.payload as { message?: string };
@@ -212,9 +223,11 @@ export function createSelectionController({
           isError: true,
           errorMessage: mapChromeRuntimeError(new Error(err?.message || "unknown")).message,
         });
+        closePort();
       }
     });
     port.onDisconnect.addListener(() => {
+      if (requestGeneration !== streamGeneration || activePort !== port) return;
       if (activePort === port) activePort = null;
       if (!streamFinished) {
         host.updateStream({
@@ -238,6 +251,24 @@ export function createSelectionController({
         state: "error",
         position,
       });
+      closePort();
+    }
+  }
+
+  function cancelDeep(): void {
+    streamGeneration += 1;
+    const port = activePort;
+    activePort = null;
+    if (!port) return;
+    try {
+      port.postMessage({ type: "translate:stream:abort" });
+    } catch {
+      // The worker may already be gone; disconnect still releases the port.
+    }
+    try {
+      port.disconnect();
+    } catch {
+      // Ignore a port already disconnected by the browser.
     }
   }
 
@@ -326,6 +357,7 @@ export function createSelectionController({
     handleSelection,
     translate,
     translateDeep,
+    cancelDeep,
     saveVocabulary,
     getSelectionPosition,
     retryLast,

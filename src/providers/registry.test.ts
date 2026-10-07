@@ -70,7 +70,9 @@ describe("translateViaChain", () => {
 
   it("falls back when the primary provider fails", async () => {
     const primaryTranslate = vi.fn().mockRejectedValue(new Error("primary failed"));
-    const fallbackTranslate = vi.fn().mockResolvedValue(result("test-fallback-success", "回退成功"));
+    const fallbackTranslate = vi
+      .fn()
+      .mockResolvedValue(result("test-fallback-success", "回退成功"));
     registerProvider(makeProvider("test-primary-fails", primaryTranslate));
     registerProvider(makeProvider("test-fallback-success", fallbackTranslate));
 
@@ -90,8 +92,12 @@ describe("translateViaChain", () => {
   });
 
   it("throws the last provider error when every provider fails", async () => {
-    registerProvider(makeProvider("test-all-fail-primary", vi.fn().mockRejectedValue(new Error("first"))));
-    registerProvider(makeProvider("test-all-fail-fallback", vi.fn().mockRejectedValue(new Error("last"))));
+    registerProvider(
+      makeProvider("test-all-fail-primary", vi.fn().mockRejectedValue(new Error("first")))
+    );
+    registerProvider(
+      makeProvider("test-all-fail-fallback", vi.fn().mockRejectedValue(new Error("last")))
+    );
 
     await expect(
       translateViaChain(baseRequest, {
@@ -125,7 +131,14 @@ describe("translateViaChain", () => {
   it("returns a cached result without calling the provider", async () => {
     const translate = vi.fn().mockResolvedValue(result("test-cache-hit", "fresh"));
     registerProvider(makeProvider("test-cache-hit", translate));
-    translationCache.set("test-cache-hit", "en", "zh-CN", "quick", "hello", result("test-cache-hit", "cached"));
+    translationCache.set(
+      "test-cache-hit",
+      "en",
+      "zh-CN",
+      "quick",
+      "hello",
+      result("test-cache-hit", "cached")
+    );
 
     const actual = await translateViaChain(baseRequest, {
       primary: "test-cache-hit",
@@ -170,5 +183,47 @@ describe("translateViaChain", () => {
       credentials: {},
       signal: controller.signal,
     });
+  });
+
+  it("does not cache a late result from a provider that ignores cancellation", async () => {
+    const controller = new AbortController();
+    let finish: (value: TranslationResult) => void;
+    const translate = vi
+      .fn()
+      .mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)))
+      .mockResolvedValue(result("test-late-abort", "fresh"));
+    registerProvider(makeProvider("test-late-abort", translate));
+    const options = { primary: "test-late-abort", fallback: [], credentialsFor: () => ({}) };
+    const pending = translateViaChain(baseRequest, { ...options, signal: controller.signal });
+    controller.abort();
+    finish!(result("test-late-abort", "stale"));
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    await expect(translateViaChain(baseRequest, options)).resolves.toMatchObject({
+      translatedText: "fresh",
+    });
+    expect(translate).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops late stream chunks and final cache writes after cancellation", async () => {
+    const controller = new AbortController();
+    const onChunk = vi.fn();
+    async function* chunks() {
+      yield { translatedText: "first" };
+      controller.abort();
+      yield { translatedText: "stale" };
+    }
+    registerProvider(makeProvider("test-late-stream", vi.fn().mockResolvedValue(chunks())));
+    await expect(
+      translateViaChain(baseRequest, {
+        primary: "test-late-stream",
+        fallback: [],
+        credentialsFor: () => ({}),
+        signal: controller.signal,
+        onChunk,
+      })
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(onChunk).toHaveBeenCalledTimes(1);
+    expect(onChunk).toHaveBeenCalledWith({ translatedText: "first", provider: "test-late-stream" });
+    expect(translationCache.get("test-late-stream", "en", "zh-CN", "quick", "hello")).toBeNull();
   });
 });
