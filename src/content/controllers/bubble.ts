@@ -15,13 +15,15 @@ export function createBubbleController({
   setSettings,
   saveVocabulary,
   translateDeep,
+  cancelDeep,
   retryLast,
 }: SettingsAccessor & {
   saveVocabulary: (text: string) => Promise<void>;
   translateDeep: (text: string) => Promise<void>;
+  cancelDeep: () => void;
   retryLast: () => void;
 }): BubbleController {
-  const host = createBubbleHost();
+  const host = createBubbleHost(cancelDeep);
 
   function handleGlobalMouseDown(event: MouseEvent): void {
     if (host.isPinned()) return;

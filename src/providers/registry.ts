@@ -76,9 +76,11 @@ export async function translateViaChain(
         signal: options.signal,
       };
       const raw = await provider.translate(req, ctx);
+      throwIfAborted(options.signal);
       const final = isAsyncIterable<Partial<TranslationResult>>(raw)
-        ? await collectStream(raw, req, provider.id, options.onChunk)
+        ? await collectStream(raw, req, provider.id, options.onChunk, options.signal)
         : raw;
+      throwIfAborted(options.signal);
       translationCache.set(options.primary, req.from, req.to, req.mode, text, final);
       if (providerId !== options.primary) {
         translationCache.set(providerId, req.from, req.to, req.mode, text, final);
@@ -97,7 +99,8 @@ async function collectStream(
   iterable: AsyncIterable<Partial<TranslationResult>>,
   req: TranslationRequest,
   providerId: string,
-  onChunk?: (chunk: Partial<TranslationResult>) => void
+  onChunk?: (chunk: Partial<TranslationResult>) => void,
+  signal?: AbortSignal
 ): Promise<TranslationResult> {
   let accumulated: TranslationResult = {
     originalText: req.text,
@@ -105,6 +108,7 @@ async function collectStream(
     provider: providerId,
   };
   for await (const chunk of iterable) {
+    throwIfAborted(signal);
     accumulated = {
       ...accumulated,
       ...chunk,
@@ -114,4 +118,8 @@ async function collectStream(
   }
   accumulated.streamed = true;
   return accumulated;
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException("Translation cancelled", "AbortError");
 }

@@ -16,6 +16,9 @@ interface InputState {
   observer: IntersectionObserver | null;
   targetVisible: boolean;
   generation: number;
+  blurTimer: number | null;
+  streamSnapshot: { target: HTMLElement; originalText: string; lastAppliedText: string } | null;
+  applyingText: boolean;
 }
 
 const state: InputState = {
@@ -33,6 +36,9 @@ const state: InputState = {
   observer: null,
   targetVisible: true,
   generation: 0,
+  blurTimer: null,
+  streamSnapshot: null,
+  applyingText: false,
 };
 
 const ACTIONS: Array<{ id: string; label: string; prompt: string }> = [
@@ -76,14 +82,17 @@ export function enableInputEnhance(settings: Settings): void {
   state.repositionBound = requestReposition;
   document.addEventListener("focusin", onFocusIn, true);
   document.addEventListener("focusout", onFocusOut, true);
+  document.addEventListener("input", onInput, true);
 }
 
 export function disableInputEnhance(): void {
   if (!state.enabled) return;
   state.enabled = false;
+  clearBlurTimer();
   cancelActivePort();
   document.removeEventListener("focusin", onFocusIn, true);
   document.removeEventListener("focusout", onFocusOut, true);
+  document.removeEventListener("input", onInput, true);
   detachRepositionListeners();
   detachVisibilityObserver();
   clearUndo();
@@ -103,7 +112,11 @@ function isEditable(element: EventTarget | null): element is HTMLElement {
 
 function onFocusIn(event: FocusEvent): void {
   if (!isEditable(event.target)) return;
-  if (state.targetElement !== event.target) cancelActivePort();
+  clearBlurTimer();
+  if (state.targetElement !== event.target) {
+    cancelActivePort();
+    clearUndo();
+  }
   state.targetElement = event.target as HTMLElement;
   state.toolbarExpanded = false;
   state.targetVisible = true;
@@ -113,10 +126,13 @@ function onFocusIn(event: FocusEvent): void {
 }
 
 function onFocusOut(event: FocusEvent): void {
+  if (!state.targetElement) return;
   const related = event.relatedTarget;
   if (related instanceof HTMLElement && state.toolbar?.contains(related)) return;
   const target = state.targetElement;
-  setTimeout(() => {
+  clearBlurTimer();
+  state.blurTimer = window.setTimeout(() => {
+    state.blurTimer = null;
     if (state.targetElement !== target) return;
     if (!document.activeElement || !isEditable(document.activeElement)) {
       cancelActivePort();
@@ -127,6 +143,17 @@ function onFocusOut(event: FocusEvent): void {
       state.targetElement = null;
     }
   }, 120);
+}
+
+function clearBlurTimer(): void {
+  if (state.blurTimer !== null) window.clearTimeout(state.blurTimer);
+  state.blurTimer = null;
+}
+
+function onInput(event: Event): void {
+  if (state.applyingText || event.target !== state.targetElement) return;
+  cancelActivePort(false);
+  clearUndo();
 }
 
 function baseToolbarStyles(rect: DOMRect): string {
@@ -344,11 +371,11 @@ function detachRepositionListeners(): void {
 async function runAction(prompt: string): Promise<void> {
   if (!state.targetElement || !state.settings) return;
   const target = state.targetElement;
+  cancelActivePort();
   const current = getText(target);
   if (!current.trim()) return;
   state.originalText = current;
 
-  cancelActivePort();
   const requestGeneration = state.generation;
 
   let port: chrome.runtime.Port;
@@ -359,8 +386,20 @@ async function runAction(prompt: string): Promise<void> {
     return;
   }
   state.activePort = port;
+  state.streamSnapshot = { target, originalText: current, lastAppliedText: current };
   let accumulated = "";
   let finished = false;
+  const closePort = (): void => {
+    if (state.activePort === port) {
+      state.activePort = null;
+      state.streamSnapshot = null;
+    }
+    try {
+      port.disconnect();
+    } catch {
+      // A worker disconnect can race with settlement.
+    }
+  };
 
   port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
     if (
@@ -369,10 +408,16 @@ async function runAction(prompt: string): Promise<void> {
       state.targetElement !== target
     )
       return;
+    if (state.streamSnapshot && getText(target) !== state.streamSnapshot.lastAppliedText) {
+      cancelActivePort(false);
+      clearUndo();
+      return;
+    }
     if (message.type === "chunk") {
       const chunk = message.payload as { translatedText?: string };
       if (chunk.translatedText) {
         accumulated = chunk.translatedText;
+        if (state.streamSnapshot) state.streamSnapshot.lastAppliedText = accumulated;
         replaceText(target, accumulated);
       }
     } else if (message.type === "done") {
@@ -384,9 +429,11 @@ async function runAction(prompt: string): Promise<void> {
         state.toolbarExpanded = true;
         showToolbar(false);
       }
+      closePort();
     } else if (message.type === "error") {
       finished = true;
       replaceText(target, state.originalText);
+      closePort();
     }
   });
   port.onDisconnect.addListener(() => {
@@ -398,8 +445,9 @@ async function runAction(prompt: string): Promise<void> {
       return;
     if (state.activePort === port) state.activePort = null;
     if (!finished) {
-      replaceText(target, state.originalText);
+      restoreUnfinishedStream();
     }
+    state.streamSnapshot = null;
   });
 
   const payload: TranslationRequest = {
@@ -415,11 +463,14 @@ async function runAction(prompt: string): Promise<void> {
     finished = true;
     console.warn("[polyglot] input enhance post failed", mapChromeRuntimeError(error));
     replaceText(target, state.originalText);
+    closePort();
   }
 }
 
-function cancelActivePort(): void {
+function cancelActivePort(restore = true): void {
   state.generation += 1;
+  if (restore) restoreUnfinishedStream();
+  state.streamSnapshot = null;
   const port = state.activePort;
   state.activePort = null;
   if (!port) return;
@@ -435,6 +486,16 @@ function cancelActivePort(): void {
   }
 }
 
+function restoreUnfinishedStream(): void {
+  const snapshot = state.streamSnapshot;
+  if (
+    snapshot &&
+    getText(snapshot.target) === snapshot.lastAppliedText &&
+    snapshot.lastAppliedText !== snapshot.originalText
+  )
+    replaceText(snapshot.target, snapshot.originalText);
+}
+
 function getText(element: HTMLElement): string {
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
     return element.value;
@@ -443,13 +504,18 @@ function getText(element: HTMLElement): string {
 }
 
 function replaceText(element: HTMLElement, text: string): void {
-  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-    element.value = text;
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-    return;
-  }
-  if (element.isContentEditable) {
-    element.textContent = text;
-    element.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
+  state.applyingText = true;
+  try {
+    if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+      element.value = text;
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+      return;
+    }
+    if (element.isContentEditable) {
+      element.textContent = text;
+      element.dispatchEvent(new InputEvent("input", { bubbles: true, data: text }));
+    }
+  } finally {
+    state.applyingText = false;
   }
 }

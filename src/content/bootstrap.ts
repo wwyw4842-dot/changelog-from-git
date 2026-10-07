@@ -46,6 +46,7 @@ async function bootstrap(): Promise<void> {
     setSettings,
     saveVocabulary: (text) => selectionController.saveVocabulary(text),
     translateDeep: (text) => selectionController.translateDeep(text),
+    cancelDeep: () => selectionController.cancelDeep(),
     retryLast: () => selectionController.retryLast(),
   });
 

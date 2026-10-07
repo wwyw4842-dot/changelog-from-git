@@ -93,6 +93,8 @@ export function createSelectionController({
     const settings = getSettings();
     if (!settings) return;
     if (isWhitelisted()) return;
+    cancelDeep();
+    const requestGeneration = streamGeneration;
     host.hideTrigger();
     const position = getSelectionPosition() || { x: 16, y: 16 };
     const from = detectLangHint(text);
@@ -113,6 +115,7 @@ export function createSelectionController({
         mode: "quick",
         openSidePanel: options.openSidePanel,
       });
+      if (requestGeneration !== streamGeneration) return;
       showCard({
         originalText: result.originalText || text,
         translatedText: result.translatedText,
@@ -131,6 +134,7 @@ export function createSelectionController({
         }
       }
     } catch (error) {
+      if (requestGeneration !== streamGeneration) return;
       const err = mapChromeRuntimeError(error);
       showCard({
         originalText: text,
@@ -182,6 +186,14 @@ export function createSelectionController({
     }
     activePort = port;
     let streamFinished = false;
+    const closePort = (): void => {
+      if (activePort === port) activePort = null;
+      try {
+        port.disconnect();
+      } catch {
+        // A worker disconnect can race with settlement.
+      }
+    };
 
     port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
       if (requestGeneration !== streamGeneration || activePort !== port) return;
@@ -203,6 +215,7 @@ export function createSelectionController({
           state: "done",
           position,
         });
+        closePort();
       } else if (message.type === "error") {
         streamFinished = true;
         const err = message.payload as { message?: string };
@@ -210,6 +223,7 @@ export function createSelectionController({
           isError: true,
           errorMessage: mapChromeRuntimeError(new Error(err?.message || "unknown")).message,
         });
+        closePort();
       }
     });
     port.onDisconnect.addListener(() => {
@@ -237,6 +251,7 @@ export function createSelectionController({
         state: "error",
         position,
       });
+      closePort();
     }
   }
 

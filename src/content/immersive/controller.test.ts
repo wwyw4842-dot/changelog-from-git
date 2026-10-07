@@ -161,4 +161,17 @@ describe("immersive translation lifecycle", () => {
     );
     expect(requestTranslation).toHaveBeenCalledTimes(2);
   });
+
+  it("clears the navigation timer when navigating to a page with no blocks", async () => {
+    createParagraphs(1);
+    const clearInterval = vi.spyOn(window, "clearInterval");
+    await enableImmersive(settings);
+    document.body.innerHTML = "";
+    history.pushState({}, "", "/empty");
+    FakeIntersectionObserver.instances[0].trigger([]);
+    expect(clearInterval).toHaveBeenCalledTimes(1);
+    await enableImmersive(settings);
+    disableImmersive();
+    expect(clearInterval).toHaveBeenCalledTimes(1);
+  });
 });

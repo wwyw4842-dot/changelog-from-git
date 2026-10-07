@@ -1,0 +1,34 @@
+{
+  "original": {
+    "sha": "9df3e6c0fda1c802c8884f8468f198bad397661f",
+    "exit": 1,
+    "test_files": [
+      "src/background/handlers/stream.test.ts",
+      "src/content/controllers/selection.test.ts",
+      "tests/bubble-host-lifecycle.test.ts",
+      "src/content/inputEnhance/controller.test.ts",
+      "src/providers/registry.test.ts"
+    ],
+    "summary": [
+      "\u23af\u23af\u23af\u23af\u23af\u23af Failed Tests 19 \u23af\u23af\u23af\u23af\u23af\u23af\u23af",
+      "Test Files  5 failed (5)",
+      "Tests  19 failed | 6 passed (25)"
+    ]
+  },
+  "pre-review": {
+    "sha": "a5acb515462ca7c0b3791deff2a4fca93648df29",
+    "exit": 1,
+    "test_files": [
+      "src/background/handlers/stream.test.ts",
+      "src/content/controllers/selection.test.ts",
+      "tests/bubble-host-lifecycle.test.ts",
+      "src/content/inputEnhance/controller.test.ts",
+      "src/providers/registry.test.ts"
+    ],
+    "summary": [
+      "\u23af\u23af\u23af\u23af\u23af\u23af Failed Tests 15 \u23af\u23af\u23af\u23af\u23af\u23af\u23af",
+      "Test Files  4 failed | 1 passed (5)",
+      "Tests  15 failed | 10 passed (25)"
+    ]
+  }
+}

@@ -200,9 +200,7 @@ function resetForNavigation(): void {
   clearImmersive();
   const blocks = collectBlocks();
   if (!blocks.length) {
-    state.enabled = false;
-    toolbar?.remove();
-    toolbar = null;
+    disableImmersive();
     return;
   }
   state.observer = new IntersectionObserver(onIntersection, {

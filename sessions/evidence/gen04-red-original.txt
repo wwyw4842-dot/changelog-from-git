@@ -1,0 +1,405 @@
+
+ RUN  v2.1.9 /private/var/folders/ff/nb9jszvd3_1gj9sxxn66_y840000gn/T/gen04-changelog-original-8q0zrydh
+
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ❯ src/content/inputEnhance/controller.test.ts (7 tests | 7 failed) 58ms
+   × input enhancement stream ownership > switching focus aborts the old stream without editing either target on late results 36ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × input enhancement stream ownership > editing the same input cancels the stream and preserves the newer text 3ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × input enhancement stream ownership > does not overwrite a programmatic edit that emits no input event 4ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × input enhancement stream ownership > does not offer the previous input's undo when switching targets 6ms
+     → expected '润色纠错→ EN→ 中文扩写精简撤销' not to contain '撤销'
+   × input enhancement stream ownership > disabling clears pending blur callbacks 4ms
+     → expected "clearTimeout" to be called with arguments: [ { refed: true, …(4), …(1) } ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+   × input enhancement stream ownership > disconnects a settled done stream and ignores late chunks 3ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × input enhancement stream ownership > disconnects a settled error stream and ignores late chunks 2ms
+     → expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/controllers/selection.test.ts (4 tests | 4 failed) 6ms
+   × selection stream lifecycle > a quick request cancels an older deep stream and drops its late messages 4ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × selection stream lifecycle > a late quick result cannot reopen a closed or replaced card 0ms
+     → controller.cancelDeep is not a function
+   × selection stream lifecycle > disconnects a settled done stream 0ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × selection stream lifecycle > disconnects a settled error stream 0ms
+     → expected "spy" to be called 1 times, but got 0 times
+ ❯ tests/bubble-host-lifecycle.test.ts (2 tests | 2 failed) 8ms
+   × bubble dismissal cancellation > cancels pending work on programmatic dismissal 6ms
+     → expected "spy" to be called 1 times, but got 0 times
+   × bubble dismissal cancellation > cancels pending work on close button dismissal 1ms
+     → expected "spy" to be called 1 times, but got 0 times
+ ❯ src/providers/registry.test.ts (8 tests | 2 failed) 11ms
+   × translateViaChain > does not cache a late result from a provider that ignores cancellation 5ms
+     → promise resolved "{ originalText: ' hello ', …(2) }" instead of rejecting
+   × translateViaChain > drops late stream chunks and final cache writes after cancellation 1ms
+     → promise resolved "{ originalText: ' hello ', …(3) }" instead of rejecting
+ ❯ src/background/handlers/stream.test.ts (4 tests | 4 failed) 1304ms
+   × stream request ownership and cancellation > disconnect aborts the provider and drops its late result and history 79ms
+     → expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "from": "en",
+        "originalText": "disconnected",
+        "provider": "test",
+        "to": "zh-CN",
+        "translatedText": "disconnected-translated",
+        "ts": 1791374556628,
+      },
+    ]
+
+
+Number of calls: 1
+
+   × stream request ownership and cancellation > explicit abort suppresses late results even before the port disconnects 107ms
+     → expected "spy" to not be called at all, but actually been called 2 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "payload": Object {
+          "translatedText": "late",
+        },
+        "type": "chunk",
+      },
+    ]
+
+  2nd spy call:
+
+    Array [
+      Object {
+        "payload": Object {
+          "originalText": "aborted",
+          "provider": "test",
+          "translatedText": "aborted-translated",
+        },
+        "type": "done",
+      },
+    ]
+
+
+Number of calls: 2
+
+   × stream request ownership and cancellation > replacing a request on one port gives the new request its own signal 106ms
+     → expected false to be true // Object.is equality
+   × stream request ownership and cancellation > holds cancelled provider leases until settlement and removes queued disconnects 1005ms
+     → expected [ { request: { …(4) }, …(2) }, …(7) ] to have a length of 6 but got 8
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/providers/registry.test.ts > translateViaChain > does not cache a late result from a provider that ignores cancellation
+AssertionError: promise resolved "{ originalText: ' hello ', …(2) }" instead of rejecting
+
+- Expected
++ Received
+
+- [Error: rejected promise]
++ Object {
++   "originalText": " hello ",
++   "provider": "test-late-abort",
++   "translatedText": "stale",
++ }
+
+ ❯ src/providers/registry.test.ts:200:25
+    198|     controller.abort();
+    199|     finish!(result("test-late-abort", "stale"));
+    200|     await expect(pending).rejects.toMatchObject({ name: "AbortError" }…
+       |                         ^
+    201|     await expect(translateViaChain(baseRequest, options)).resolves.toM…
+    202|       translatedText: "fresh",
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/19]⎯
+
+ FAIL  src/providers/registry.test.ts > translateViaChain > drops late stream chunks and final cache writes after cancellation
+AssertionError: promise resolved "{ originalText: ' hello ', …(3) }" instead of rejecting
+
+- Expected
++ Received
+
+- [Error: rejected promise]
++ Object {
++   "originalText": " hello ",
++   "provider": "test-late-stream",
++   "streamed": true,
++   "translatedText": "stale",
++ }
+
+ ❯ src/providers/registry.test.ts:224:5
+    222|         onChunk,
+    223|       })
+    224|     ).rejects.toMatchObject({ name: "AbortError" });
+       |     ^
+    225|     expect(onChunk).toHaveBeenCalledTimes(1);
+    226|     expect(onChunk).toHaveBeenCalledWith({ translatedText: "first", pr…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/19]⎯
+
+ FAIL  src/background/handlers/stream.test.ts > stream request ownership and cancellation > disconnect aborts the provider and drops its late result and history
+AssertionError: expected "spy" to not be called at all, but actually been called 1 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "from": "en",
+        "originalText": "disconnected",
+        "provider": "test",
+        "to": "zh-CN",
+        "translatedText": "disconnected-translated",
+        "ts": 1791374556628,
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/background/handlers/stream.test.ts:104:31
+    102|     await task;
+    103|     expect(port.posted).not.toHaveBeenCalled();
+    104|     expect(mocks.history).not.toHaveBeenCalled();
+       |                               ^
+    105|   });
+    106| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/19]⎯
+
+ FAIL  src/background/handlers/stream.test.ts > stream request ownership and cancellation > explicit abort suppresses late results even before the port disconnects
+AssertionError: expected "spy" to not be called at all, but actually been called 2 times
+
+Received: 
+
+  1st spy call:
+
+    Array [
+      Object {
+        "payload": Object {
+          "translatedText": "late",
+        },
+        "type": "chunk",
+      },
+    ]
+
+  2nd spy call:
+
+    Array [
+      Object {
+        "payload": Object {
+          "originalText": "aborted",
+          "provider": "test",
+          "translatedText": "aborted-translated",
+        },
+        "type": "done",
+      },
+    ]
+
+
+Number of calls: 2
+
+ ❯ src/background/handlers/stream.test.ts:116:29
+    114|     pending[0].resolve();
+    115|     await task;
+    116|     expect(port.posted).not.toHaveBeenCalled();
+       |                             ^
+    117|     expect(mocks.history).not.toHaveBeenCalled();
+    118|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/19]⎯
+
+ FAIL  src/background/handlers/stream.test.ts > stream request ownership and cancellation > replacing a request on one port gives the new request its own signal
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/background/handlers/stream.test.ts:126:48
+    124|     const second = port.send("second");
+    125|     await vi.waitFor(() => expect(pending).toHaveLength(2));
+    126|     expect(pending[0].options.signal?.aborted).toBe(true);
+       |                                                ^
+    127|     expect(pending[1].options.signal?.aborted).toBe(false);
+    128|     pending[0].resolve();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/19]⎯
+
+ FAIL  src/background/handlers/stream.test.ts > stream request ownership and cancellation > holds cancelled provider leases until settlement and removes queued disconnects
+AssertionError: expected [ { request: { …(4) }, …(2) }, …(7) ] to have a length of 6 but got 8
+
+- Expected
++ Received
+
+- 6
++ 8
+
+ ❯ src/background/handlers/stream.test.ts:144:44
+    142|     const ports = Array.from({ length: 8 }, makePort);
+    143|     const tasks = ports.map((port, index) => port.send(`request-${inde…
+    144|     await vi.waitFor(() => expect(pending).toHaveLength(6));
+       |                                            ^
+    145|     ports[0].disconnect();
+    146|     ports[6].disconnect();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/19]⎯
+
+ FAIL  src/content/controllers/selection.test.ts > selection stream lifecycle > a quick request cancels an older deep stream and drops its late messages
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/controllers/selection.test.ts:66:33
+     64|     });
+     65|     await controller.translate("new quick");
+     66|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     67|     showCard.mockClear();
+     68|     ports[0].emit({ type: "chunk", payload: { translatedText: "stale" …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/19]⎯
+
+ FAIL  src/content/controllers/selection.test.ts > selection stream lifecycle > a late quick result cannot reopen a closed or replaced card
+TypeError: controller.cancelDeep is not a function
+ ❯ src/content/controllers/selection.test.ts:80:16
+     78|     );
+     79|     const quick = controller.translate("quick");
+     80|     controller.cancelDeep();
+       |                ^
+     81|     showCard.mockClear();
+     82|     resolve!({ originalText: "quick", translatedText: "stale", provide…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/19]⎯
+
+ FAIL  src/content/controllers/selection.test.ts > selection stream lifecycle > disconnects a settled done stream
+ FAIL  src/content/controllers/selection.test.ts > selection stream lifecycle > disconnects a settled error stream
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/controllers/selection.test.ts:93:33
+     91|       payload: { translatedText: "done", provider: "test", message: "f…
+     92|     });
+     93|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     94|     updateStream.mockClear();
+     95|     ports[0].emit({ type: "chunk", payload: { translatedText: "late" }…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/19]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > switching focus aborts the old stream without editing either target on late results
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/inputEnhance/controller.test.ts:67:33
+     65|     expect(first.value).toBe("partial");
+     66|     second.focus();
+     67|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     68|     ports[0].emit({ type: "chunk", payload: { translatedText: "stale" …
+     69|     ports[0].emit({ type: "done", payload: { translatedText: "stale" }…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/19]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > editing the same input cancels the stream and preserves the newer text
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/inputEnhance/controller.test.ts:78:33
+     76|     first.value = "user edit";
+     77|     first.dispatchEvent(new Event("input", { bubbles: true }));
+     78|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     79|     ports[0].emit({ type: "done", payload: { translatedText: "stale" }…
+     80|     expect(first.value).toBe("user edit");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/19]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > does not overwrite a programmatic edit that emits no input event
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/inputEnhance/controller.test.ts:87:33
+     85|     first.value = "application edit";
+     86|     ports[0].emit({ type: "done", payload: { translatedText: "stale" }…
+     87|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+     88|     expect(first.value).toBe("application edit");
+     89|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/19]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > does not offer the previous input's undo when switching targets
+AssertionError: expected '润色纠错→ EN→ 中文扩写精简撤销' not to contain '撤销'
+
+Expected: "撤销"
+Received: "润色纠错→ EN→ 中文扩写精简撤销"
+
+ ❯ src/content/inputEnhance/controller.test.ts:95:86
+     93|     expect(document.querySelector("[data-polyglot-input-toolbar]")?.te…
+     94|     second.focus();
+     95|     expect(document.querySelector("[data-polyglot-input-toolbar]")?.te…
+       |                                                                                      ^
+     96|       "撤销"
+     97|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/19]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > disabling clears pending blur callbacks
+AssertionError: expected "clearTimeout" to be called with arguments: [ { refed: true, …(4), …(1) } ]
+
+Received: 
+
+
+
+Number of calls: 0
+
+ ❯ src/content/inputEnhance/controller.test.ts:109:20
+    107|     const blurTimer = schedule.mock.results[blurIndex].value;
+    108|     disableInputEnhance();
+    109|     expect(cancel).toHaveBeenCalledWith(blurTimer);
+       |                    ^
+    110|     vi.advanceTimersByTime(120);
+    111|     expect(first.value).toBe("first");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/19]⎯
+
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > disconnects a settled done stream and ignores late chunks
+ FAIL  src/content/inputEnhance/controller.test.ts > input enhancement stream ownership > disconnects a settled error stream and ignores late chunks
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ src/content/inputEnhance/controller.test.ts:116:33
+    114|   it.each(["done", "error"])("disconnects a settled %s stream and igno…
+    115|     ports[0].emit({ type, payload: { translatedText: "current" } });
+    116|     expect(ports[0].disconnect).toHaveBeenCalledTimes(1);
+       |                                 ^
+    117|     ports[0].emit({ type: "chunk", payload: { translatedText: "stale" …
+    118|     expect(first.value).toBe(type === "done" ? "current" : "first");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/19]⎯
+
+ FAIL  tests/bubble-host-lifecycle.test.ts > bubble dismissal cancellation > cancels pending work on programmatic dismissal
+ FAIL  tests/bubble-host-lifecycle.test.ts > bubble dismissal cancellation > cancels pending work on close button dismissal
+AssertionError: expected "spy" to be called 1 times, but got 0 times
+ ❯ tests/bubble-host-lifecycle.test.ts:26:20
+     24|     if (mode === "programmatic") host.hide();
+     25|     else render.mock.calls[0][0].props.onClose();
+     26|     expect(cancel).toHaveBeenCalledTimes(1);
+       |                    ^
+     27|     expect(host.isVisible()).toBe(false);
+     28|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/19]⎯
+
+ Test Files  5 failed (5)
+      Tests  19 failed | 6 passed (25)
+   Start at  20:02:35
+   Duration  1.93s (transform 565ms, setup 0ms, collect 842ms, tests 1.39s, environment 1.11s, prepare 164ms)
+
