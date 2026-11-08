@@ -4,10 +4,14 @@
  */
 export function mapChromeRuntimeError(error: unknown): Error {
   const raw = error instanceof Error ? error.message : String(error);
-  if (/extension context invalidated/i.test(raw) || /context invalidated/i.test(raw)) {
-    return new Error(
-      "扩展刚被重新加载或更新，本页与扩展的连接已断开。请按 F5（或 Ctrl+R）刷新本页面后再翻译。"
-    );
+  if (
+    /extension context invalidated/i.test(raw) ||
+    /context invalidated/i.test(raw) ||
+    /cannot read propert(?:y|ies) of (?:undefined|null) \(reading ['"](?:sendMessage|connect)['"]\)/i.test(
+      raw
+    )
+  ) {
+    return new Error("扩展已更新，请刷新本页后再翻译。");
   }
   if (
     /could not establish connection/i.test(raw) ||

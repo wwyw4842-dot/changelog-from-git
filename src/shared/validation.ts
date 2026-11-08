@@ -11,6 +11,9 @@ export const TranslationRequestSchema = z
     context: z.string().optional(),
     mode: TranslationModeSchema,
     providerId: z.string().optional(),
+    url: z.string().nullable().optional(),
+    pageTitle: z.string().nullable().optional(),
+    domain: z.string().nullable().optional(),
     ieltsMode: z.boolean().optional(),
     ieltsTarget: z.string().optional(),
   })
@@ -98,10 +101,29 @@ export const MessageEnvelopeSchema = z
   })
   .strict();
 
+export const OcrRecognizeSchema = z
+  .object({
+    src: z.string(),
+    lang: z.string().optional(),
+  })
+  .strict();
+
+const VocabularyFieldsSchema = z.object({
+  word: z.string().trim().min(1), translation: z.string().trim().min(1),
+  context: z.string().optional(), phonetic: z.string().optional(), tags: z.array(z.string()).optional(),
+  examples: z.array(z.object({ en: z.string(), zh: z.string() })).optional(),
+  url: z.string().nullable().optional(), pageTitle: z.string().nullable().optional(), domain: z.string().nullable().optional(),
+}).strict();
+
 export const MessagePayloadSchemas = {
+  "vocabulary:add": VocabularyFieldsSchema,
+  "vocabulary:review": z.object({ id: z.number().int().positive(), rating: z.enum(["again", "hard", "good", "easy"]) }).strict(),
+  "vocabulary:update": z.object({ id: z.number().int().positive(), patch: VocabularyFieldsSchema.omit({ url: true, pageTitle: true, domain: true }).partial().strict() }).strict(),
+  "vocabulary:pairing:connect": z.object({ pairingCode: z.string().trim().min(1) }).strict(),
   "settings:update": SettingsPatchSchema,
   "translate:request": TranslationRequestSchema,
   "translate:selection": TranslationSelectionRequestSchema,
+  "ocr:recognize": OcrRecognizeSchema,
 } as const;
 
 export const GoogleTranslateResponseSchema = z

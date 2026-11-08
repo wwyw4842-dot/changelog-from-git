@@ -266,6 +266,7 @@ function showToolbar(total: number): void {
   ].join(";");
 
   const info = document.createElement("span");
+  info.setAttribute("data-polyglot-immersive-count", "1");
   info.textContent = `沉浸式 · 共 ${total} 段`;
   info.style.opacity = "0.75";
   const close = document.createElement("button");

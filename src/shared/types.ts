@@ -9,6 +9,9 @@ export interface TranslationRequest {
   context?: string;
   mode: TranslationMode;
   providerId?: string;
+  url?: string | null;
+  pageTitle?: string | null;
+  domain?: string | null;
   ieltsMode?: boolean;
   ieltsTarget?: string;
 }
@@ -43,6 +46,63 @@ export interface HistoryEntry extends TranslationResult {
   ts: number;
   from: string;
   to: string;
+  /** 划词所在的真实页面语境；旧记录可能没有该字段。 */
+  context?: string;
+}
+
+export type ReviewRating = "again" | "hard" | "good" | "easy";
+
+export interface FolioReview {
+  algorithm: "fsrs-6";
+  dueAt: string;
+  intervalDays: number;
+  reviewCount: number;
+  lapseCount: number;
+  masteryState: string;
+  updatedAt: string;
+}
+
+export interface VocabularyCapture {
+  eventId: string;
+  word: string;
+  translation: string;
+  phonetic: string;
+  context: string;
+  url: string | null;
+  pageTitle: string | null;
+  domain: string | null;
+  addedAt: string;
+  expressionId?: string;
+}
+
+export type SyncOutboxEntry = {
+  id?: number;
+  eventId: string;
+  vocabularyId: number;
+  libraryId?: string;
+} & ({ kind: "capture"; payload: VocabularyCapture } | {
+  kind: "review";
+  payload: { eventId: string; expressionId?: string; rating: ReviewRating; reviewedAt: string };
+});
+
+export interface FolioSyncBinding {
+  id: "folio";
+  libraryId: string;
+}
+
+export interface VocabularySyncResult {
+  pushed: number;
+  pulled: number;
+  pending: number;
+  success: boolean;
+  error?: string;
+}
+
+export interface FolioPairingStatus {
+  paired: boolean;
+  extensionId: string;
+  pairedExtensionId: string | null;
+  boundLibraryId: string | null;
 }
 
 export interface VocabularyEntry {
@@ -60,6 +120,16 @@ export interface VocabularyEntry {
   reps: number;
   lapses: number;
   tags?: string[];
+  synced?: boolean;
+  expressionId?: string;
+  url?: string | null;
+  pageTitle?: string | null;
+  domain?: string | null;
+  review?: FolioReview;
+  pendingReview?: boolean;
+  removedAt?: number;
+  /** Historical SM-2 values only; never used for new scheduling. */
+  legacyReview?: { nextReviewAt: number; easeFactor: number; interval: number; reps: number; lapses: number };
 }
 
 export interface VocabExample {

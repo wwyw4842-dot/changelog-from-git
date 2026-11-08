@@ -1,0 +1,939 @@
+body.poly-options {
+  --foliole-paper: var(--paper-50);
+  --foliole-paper-muted: var(--paper-200);
+  --foliole-surface: var(--paper-100);
+  --foliole-ink: var(--ink-900);
+  --foliole-ink-soft: var(--ink-700);
+  --foliole-muted: var(--ink-500);
+  --foliole-line: var(--paper-300);
+  --foliole-coral: var(--coral-500);
+  --foliole-coral-dark: var(--coral-600);
+  --foliole-coral-soft: color-mix(in srgb, var(--coral-300) 24%, var(--paper-50));
+  --foliole-sage: #4b765f;
+  --foliole-sage-soft: color-mix(in srgb, var(--sage-500) 17%, var(--paper-50));
+  --foliole-danger: #a64545;
+  --foliole-danger-soft: color-mix(in srgb, #a64545 10%, var(--paper-50));
+  min-width: 320px;
+  color: var(--foliole-ink);
+  background: var(--foliole-paper);
+  background-image: none;
+}
+
+body.poly-options::before {
+  display: none;
+}
+
+html[data-poly-theme="dark"] body.poly-options {
+  --foliole-sage: #8dc3a5;
+  --foliole-danger: #ed9a9a;
+}
+
+@media (prefers-color-scheme: dark) {
+  body.poly-options {
+    --foliole-sage: #8dc3a5;
+    --foliole-danger: #ed9a9a;
+  }
+}
+
+html[data-poly-theme="light"] body.poly-options {
+  --foliole-sage: #4b765f;
+  --foliole-danger: #a64545;
+}
+
+body.poly-options button,
+body.poly-options input,
+body.poly-options select,
+body.poly-options textarea {
+  font: inherit;
+}
+
+.foliole-options-shell {
+  min-height: 100dvh;
+  color: var(--foliole-ink);
+  background: var(--foliole-paper);
+}
+
+.foliole-options-header {
+  position: sticky;
+  z-index: 40;
+  top: 0;
+  border-bottom: 1px solid var(--foliole-line);
+  background: color-mix(in srgb, var(--foliole-paper) 94%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.foliole-options-header-inner {
+  display: flex;
+  width: min(1080px, 100%);
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 auto;
+  padding: 12px 28px;
+}
+
+.foliole-options-brand,
+.foliole-options-brand-copy,
+.foliole-options-header-actions,
+.foliole-options-save-status {
+  display: flex;
+}
+
+.foliole-options-brand {
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.foliole-options-brand-mark {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 10px;
+  box-shadow: 0 7px 20px -11px rgba(38, 36, 31, 0.72);
+}
+
+.foliole-options-brand-copy {
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.foliole-options-brand-name {
+  overflow: hidden;
+  color: var(--foliole-ink);
+  font-size: 18px;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.foliole-options-brand-subtitle {
+  margin-top: 4px;
+  color: var(--foliole-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.foliole-options-header-actions {
+  align-items: center;
+  gap: 10px;
+}
+
+.foliole-options-open-panel {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--foliole-coral);
+  border-radius: 10px;
+  color: #fff;
+  background: var(--foliole-coral);
+  box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--foliole-coral) 72%, transparent);
+  font-size: 12px;
+  font-weight: 760;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.foliole-options-open-panel > span {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.foliole-options-open-panel:hover:not(:disabled) {
+  border-color: var(--foliole-coral-dark);
+  background: var(--foliole-coral-dark);
+  transform: translateY(-1px);
+}
+
+.foliole-options-open-panel:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.foliole-options-open-panel:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+html[data-poly-theme="dark"] .foliole-options-open-panel {
+  color: #241d18;
+  border-color: var(--coral-300);
+  background: var(--coral-300);
+}
+
+html[data-poly-theme="dark"] .foliole-options-open-panel:hover:not(:disabled) {
+  color: #1a1612;
+  border-color: #efbfaf;
+  background: #efbfaf;
+}
+
+@media (prefers-color-scheme: dark) {
+  .foliole-options-open-panel {
+    color: #241d18;
+    border-color: var(--coral-300);
+    background: var(--coral-300);
+  }
+
+  .foliole-options-open-panel:hover:not(:disabled) {
+    color: #1a1612;
+    border-color: #efbfaf;
+    background: #efbfaf;
+  }
+}
+
+html[data-poly-theme="light"] .foliole-options-open-panel {
+  color: #fff;
+  border-color: var(--foliole-coral);
+  background: var(--foliole-coral);
+}
+
+html[data-poly-theme="light"] .foliole-options-open-panel:hover:not(:disabled) {
+  color: #fff;
+  border-color: var(--foliole-coral-dark);
+  background: var(--foliole-coral-dark);
+}
+
+.foliole-options-save-status {
+  min-height: 30px;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid var(--foliole-line);
+  border-radius: 999px;
+  color: var(--foliole-muted);
+  background: var(--foliole-paper-muted);
+  font-size: 11px;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+.foliole-options-save-status > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.foliole-options-save-status.is-saved {
+  color: var(--foliole-sage);
+  border-color: color-mix(in srgb, var(--foliole-sage) 32%, var(--foliole-line));
+  background: var(--foliole-sage-soft);
+  animation: foliole-options-status-in 220ms ease-out both;
+}
+
+.foliole-options-toast {
+  position: fixed;
+  z-index: 80;
+  right: 20px;
+  bottom: 20px;
+  width: min(420px, calc(100vw - 40px));
+  padding: 13px 15px;
+  border: 1px solid var(--foliole-line);
+  border-radius: 11px;
+  box-shadow: 0 14px 36px -16px rgba(55, 42, 34, 0.32);
+  color: var(--foliole-ink);
+  background: var(--foliole-surface);
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.55;
+  animation: foliole-options-status-in 220ms ease-out both;
+}
+
+.foliole-options-toast.is-error {
+  color: var(--foliole-danger);
+  border-color: color-mix(in srgb, var(--foliole-danger) 34%, var(--foliole-line));
+  background: var(--foliole-danger-soft);
+}
+
+@keyframes foliole-options-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.foliole-options-layout {
+  display: grid;
+  width: min(1080px, 100%);
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 52px;
+  margin: 0 auto;
+  padding: 38px 28px 64px;
+}
+
+.foliole-options-nav {
+  position: sticky;
+  top: 110px;
+  align-self: start;
+}
+
+.foliole-options-nav-intro {
+  padding: 0 12px 16px;
+  border-bottom: 1px solid var(--foliole-line);
+}
+
+.foliole-options-nav-intro > span {
+  color: var(--foliole-ink);
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.foliole-options-nav-intro > p {
+  margin: 4px 0 0;
+  color: var(--foliole-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.foliole-options-nav-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.foliole-options-nav-list > button {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--foliole-muted);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.foliole-options-nav-list > button:hover {
+  color: var(--foliole-ink);
+  background: var(--foliole-paper-muted);
+}
+
+.foliole-options-nav-list > button:active {
+  transform: scale(0.985);
+}
+
+.foliole-options-nav-list > button.is-active {
+  color: var(--foliole-coral-dark);
+  background: var(--foliole-coral-soft);
+}
+
+.foliole-options-nav-label {
+  font-size: 13px;
+  font-weight: 760;
+}
+
+.foliole-options-nav-description {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--foliole-muted);
+  font-size: 10px;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.foliole-options-main {
+  min-width: 0;
+}
+
+.foliole-options-section-heading {
+  margin-bottom: 24px;
+}
+
+.foliole-options-section-heading > p {
+  margin: 0 0 8px;
+  color: var(--foliole-coral-dark);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.foliole-options-section-heading > h1 {
+  margin: 0;
+  color: var(--foliole-ink);
+  font-size: clamp(24px, 4vw, 30px);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+}
+
+.foliole-options-section-heading > span {
+  display: block;
+  margin-top: 8px;
+  color: var(--foliole-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.foliole-options-content {
+  animation: foliole-options-content-in 220ms ease-out both;
+}
+
+@keyframes foliole-options-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.foliole-options-page-stack,
+.foliole-options-section-body,
+.foliole-options-cards-stack {
+  display: grid;
+  gap: 16px;
+}
+
+.foliole-settings-card,
+.foliole-settings-text-card {
+  border: 1px solid var(--foliole-line);
+  border-radius: 14px;
+  background: var(--foliole-surface);
+  box-shadow: 0 9px 28px rgba(55, 42, 34, 0.055);
+}
+
+.foliole-settings-card {
+  padding: 22px;
+}
+
+.foliole-settings-text-card {
+  padding: 22px;
+  color: var(--foliole-ink-soft);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.foliole-settings-card-title,
+.foliole-settings-card-title-strong {
+  margin: 0;
+  color: var(--foliole-ink);
+  font-size: 15px;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+}
+
+.foliole-settings-card-title {
+  margin-bottom: 14px;
+}
+
+.foliole-settings-card-note {
+  margin: 4px 0 0;
+  color: var(--foliole-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.foliole-settings-card-title + .foliole-settings-card-note,
+.foliole-settings-card-title-strong + .foliole-settings-card-note {
+  margin-top: -8px;
+  margin-bottom: 14px;
+}
+
+.foliole-settings-group-heading {
+  padding: 10px 2px 0;
+}
+
+.foliole-settings-group-heading > h2 {
+  margin: 0;
+  color: var(--foliole-ink);
+  font-size: 16px;
+  font-weight: 760;
+  letter-spacing: -0.015em;
+}
+
+.foliole-settings-group-heading > p {
+  margin: 5px 0 0;
+  color: var(--foliole-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.foliole-settings-muted {
+  color: var(--foliole-muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.foliole-settings-card-body,
+.foliole-settings-card-body-dense {
+  display: grid;
+}
+
+.foliole-settings-card-body {
+  gap: 0;
+}
+
+.foliole-settings-card-body-dense {
+  gap: 10px;
+}
+
+.foliole-settings-field-row {
+  display: grid;
+  min-height: 58px;
+  grid-template-columns: minmax(140px, 0.75fr) minmax(180px, 1.35fr);
+  align-items: center;
+  gap: 14px 24px;
+  color: var(--foliole-ink-soft);
+  font-size: 13px;
+}
+
+.foliole-settings-field-row + .foliole-settings-field-row {
+  border-top: 1px solid color-mix(in srgb, var(--foliole-line) 76%, transparent);
+}
+
+.foliole-settings-field-label {
+  color: var(--foliole-ink-soft);
+  font-size: 12px;
+  font-weight: 680;
+  line-height: 1.5;
+}
+
+.foliole-settings-hint {
+  grid-column: 2;
+  margin-top: -8px;
+  color: var(--foliole-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.foliole-settings-control {
+  width: min(360px, 100%);
+  min-width: 0;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 1px solid var(--foliole-line);
+  border-radius: 10px;
+  outline: none;
+  color: var(--foliole-ink);
+  background: var(--foliole-paper);
+  box-shadow: 0 3px 12px -9px rgba(55, 42, 34, 0.28);
+  font-size: 13px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.foliole-settings-control:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--foliole-muted) 40%, var(--foliole-line));
+}
+
+.foliole-settings-control:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.foliole-settings-control::placeholder {
+  color: color-mix(in srgb, var(--foliole-muted) 78%, transparent);
+}
+
+textarea.foliole-settings-control {
+  width: 100%;
+  min-height: 108px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.foliole-settings-control.is-compact {
+  width: min(160px, 100%);
+}
+
+.foliole-settings-control.is-wide {
+  width: min(520px, 100%);
+}
+
+.foliole-settings-control.is-medium {
+  width: min(420px, 100%);
+}
+
+.foliole-settings-control.is-mono {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.foliole-settings-toggle-row {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 10px 12px;
+  border: 1px solid var(--foliole-line);
+  border-radius: 11px;
+  color: var(--foliole-ink-soft);
+  background: var(--foliole-paper);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.foliole-settings-toggle-row:hover {
+  border-color: color-mix(in srgb, var(--foliole-coral) 34%, var(--foliole-line));
+  background: var(--foliole-coral-soft);
+}
+
+.foliole-settings-toggle-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.foliole-settings-toggle-copy > strong {
+  color: var(--foliole-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.foliole-settings-toggle-copy > span {
+  color: var(--foliole-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+body.poly-options input[type="checkbox"] {
+  position: relative;
+  width: 44px;
+  min-width: 44px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--foliole-line);
+  border-radius: 999px;
+  appearance: none;
+  background: var(--foliole-paper-muted);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+body.poly-options input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--foliole-paper);
+  box-shadow: 0 2px 7px rgba(55, 42, 34, 0.22);
+  transition: transform 180ms ease;
+}
+
+body.poly-options input[type="checkbox"]:checked {
+  border-color: var(--foliole-coral);
+  background: var(--foliole-coral);
+}
+
+body.poly-options input[type="checkbox"]:checked::after {
+  transform: translateX(20px);
+}
+
+.foliole-settings-row-between {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.foliole-settings-inline-actions,
+.foliole-settings-inline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.foliole-settings-card-note + .foliole-settings-inline-actions {
+  margin-top: 16px;
+}
+
+.foliole-settings-confirm-row {
+  display: flex;
+  flex: 1 1 100%;
+  min-height: 48px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--foliole-danger) 30%, var(--foliole-line));
+  border-radius: 10px;
+  color: var(--foliole-danger);
+  background: var(--foliole-danger-soft);
+  font-size: 11px;
+  font-weight: 680;
+}
+
+.foliole-settings-confirm-row > span {
+  margin-right: auto;
+  line-height: 1.5;
+}
+
+.foliole-settings-credentials-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--foliole-line) 76%, transparent);
+}
+
+.foliole-settings-field-column {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--foliole-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.foliole-settings-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 13px;
+  border: 1px solid var(--foliole-line);
+  border-radius: 9px;
+  color: var(--foliole-ink-soft);
+  background: var(--foliole-paper);
+  box-shadow: 0 3px 12px -9px rgba(55, 42, 34, 0.28);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.foliole-settings-button:hover:not(:disabled) {
+  color: var(--foliole-coral-dark);
+  border-color: color-mix(in srgb, var(--foliole-coral) 42%, var(--foliole-line));
+  background: var(--foliole-coral-soft);
+  transform: translateY(-1px);
+}
+
+.foliole-settings-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.foliole-settings-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.foliole-settings-button.is-small {
+  min-height: 44px;
+  padding: 6px 11px;
+}
+
+.foliole-settings-button.has-top-margin {
+  margin-top: 18px;
+}
+
+.foliole-settings-button.is-danger {
+  color: var(--foliole-danger);
+  border-color: color-mix(in srgb, var(--foliole-danger) 30%, var(--foliole-line));
+  background: var(--foliole-danger-soft);
+}
+
+.foliole-settings-button.is-danger:hover:not(:disabled) {
+  color: var(--foliole-danger);
+  border-color: color-mix(in srgb, var(--foliole-danger) 52%, var(--foliole-line));
+  background: color-mix(in srgb, var(--foliole-danger) 16%, var(--foliole-paper));
+}
+
+.foliole-settings-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--foliole-sage) 30%, var(--foliole-line));
+  border-radius: 999px;
+  color: var(--foliole-sage);
+  background: var(--foliole-sage-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.foliole-settings-list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.foliole-settings-list > li {
+  display: flex;
+  min-height: 38px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.foliole-settings-kbd {
+  display: inline-flex;
+  min-width: 30px;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 8px;
+  border: 1px solid var(--foliole-line);
+  border-radius: 7px;
+  color: var(--foliole-ink-soft);
+  background: var(--foliole-paper);
+  box-shadow: 0 2px 0 var(--foliole-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.foliole-options-nav-list > button:focus-visible,
+.foliole-options-open-panel:focus-visible,
+.foliole-settings-button:focus-visible,
+.foliole-settings-control:focus-visible,
+body.poly-options input[type="checkbox"]:focus-visible {
+  outline: 3px solid var(--foliole-coral);
+  outline-offset: 2px;
+}
+
+@media (max-width: 780px) {
+  .foliole-options-header-inner {
+    min-height: 66px;
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .foliole-options-layout {
+    display: block;
+    padding: 20px 18px 48px;
+  }
+
+  .foliole-options-nav {
+    position: sticky;
+    z-index: 30;
+    top: 66px;
+    margin: -20px -18px 24px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--foliole-line);
+    background: color-mix(in srgb, var(--foliole-paper) 94%, transparent);
+    backdrop-filter: blur(16px);
+  }
+
+  .foliole-options-nav-intro,
+  .foliole-options-nav-description {
+    display: none;
+  }
+
+  .foliole-options-nav-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    margin: 0;
+  }
+
+  .foliole-options-nav-list > button {
+    min-height: 44px;
+    align-items: center;
+    padding: 7px 8px;
+    text-align: center;
+  }
+
+  .foliole-options-section-heading {
+    margin-bottom: 18px;
+  }
+
+  .foliole-settings-field-row {
+    grid-template-columns: minmax(125px, 0.72fr) minmax(170px, 1.28fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .foliole-options-save-status {
+    display: none;
+  }
+
+  .foliole-options-open-panel {
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+
+  .foliole-options-nav-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .foliole-settings-card,
+  .foliole-settings-text-card {
+    padding: 18px;
+  }
+
+  .foliole-settings-field-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 11px 0;
+  }
+
+  .foliole-settings-hint {
+    grid-column: 1;
+    margin-top: 0;
+  }
+
+  .foliole-settings-control,
+  .foliole-settings-control.is-compact,
+  .foliole-settings-control.is-medium,
+  .foliole-settings-control.is-wide {
+    width: 100%;
+  }
+
+  .foliole-settings-credentials-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .foliole-settings-row-between {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foliole-options-content,
+  .foliole-options-save-status.is-saved {
+    animation-duration: 0.01ms;
+  }
+
+  .foliole-options-nav-list > button,
+  .foliole-options-open-panel,
+  .foliole-settings-button,
+  .foliole-settings-control,
+  .foliole-settings-toggle-row,
+  body.poly-options input[type="checkbox"],
+  body.poly-options input[type="checkbox"]::after {
+    transition-duration: 0.01ms;
+  }
+}

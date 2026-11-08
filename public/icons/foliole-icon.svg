@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Soft-shadow filter for premium glassmorphism/3D depth -->
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+    <!-- Warm amber gradient representing the lifeforce of Foliole -->
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EAA655"/>
+      <stop offset="100%" stop-color="#A9743C"/>
+    </linearGradient>
+    <!-- Accent glowing gold gradient for veins -->
+    <linearGradient id="veinGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFF0D0" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#D28741" stop-opacity="0.3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Deep ink background card -->
+  <rect width="128" height="128" rx="28" fill="#26241f"/>
+
+  <!-- Elegant inner border representation of paper margins -->
+  <rect x="8" y="8" width="112" height="112" rx="20" fill="none" stroke="#3d372e" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+  <!-- The elegant small Leaf (Foliole) with glassmorphism/shadow effects -->
+  <g filter="url(#shadow)">
+    <!-- Main leaf body, curved elegantly from bottom-left to top-right -->
+    <path d="M 32 100 C 35 70, 50 45, 96 32 C 85 65, 70 85, 32 100 Z" fill="url(#leafGrad)"/>
+    
+    <!-- Secondary leaf overlap for high-end organic aesthetic -->
+    <path d="M 32 100 C 45 78, 62 65, 96 32 C 78 52, 60 70, 32 100 Z" fill="#7C4B23" opacity="0.35"/>
+    
+    <!-- Curved center stem / spine -->
+    <path d="M 32 100 Q 52 75 96 32" fill="none" stroke="#FFF5E5" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Delicate side veins -->
+    <path d="M 48 81 Q 50 71 62 70" fill="none" stroke="url(#veinGrad)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M 58 69 Q 62 58 75 58" fill="none" stroke="url(#veinGrad)" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M 68 57 Q 73 47 85 49" fill="none" stroke="url(#veinGrad)" stroke-width="1.5" stroke-linecap="round"/>
+    
+    <!-- Lower side veins -->
+    <path d="M 42 90 Q 55 88 56 94" fill="none" stroke="url(#veinGrad)" stroke-width="1" stroke-linecap="round"/>
+    <path d="M 51 79 Q 66 74 70 82" fill="none" stroke="url(#veinGrad)" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <!-- Glowing pollen dot to symbolize translation seeds -->
+  <circle cx="96" cy="32" r="3.5" fill="#FFEAA5" filter="drop-shadow(0px 0px 3px #FFAF3F)"/>
+</svg>

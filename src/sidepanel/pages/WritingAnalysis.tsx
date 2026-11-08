@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { send } from "@shared/messaging";
 import type { Settings } from "@shared/types";
 import {
@@ -7,6 +7,7 @@ import {
   buildWritingAnalysisSystemPrompt,
 } from "@shared/writing-analysis-model";
 import { PolyProse } from "@shared/PolyProse";
+import { useStreamPort } from "../hooks/useStreamPort";
 import { sideUi } from "./ui";
 
 const GENRES = [
@@ -28,13 +29,12 @@ export function WritingAnalysisTab() {
   const [streaming, setStreaming] = useState(false);
   const [output, setOutput] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const portRef = useRef<chrome.runtime.Port | null>(null);
+  const port = useStreamPort();
 
   useEffect(() => {
     void send("settings:get").then((s: Settings) => {
       if (s.ieltsTarget) setTarget(s.ieltsTarget);
     });
-    return () => portRef.current?.disconnect();
   }, []);
 
   const wordCount = essay.trim() ? essay.trim().split(/\s+/).length : 0;
@@ -45,26 +45,6 @@ export function WritingAnalysisTab() {
     setStreaming(true);
     setError(null);
     setOutput("");
-
-    portRef.current?.disconnect();
-    const port = chrome.runtime.connect({ name: "polyglot-stream" });
-    portRef.current = port;
-
-    port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
-      if (message.type === "chunk") {
-        const chunk = message.payload as { translatedText?: string };
-        if (chunk.translatedText) setOutput(chunk.translatedText);
-      } else if (message.type === "done") {
-        setStreaming(false);
-      } else if (message.type === "error") {
-        const err = message.payload as { message?: string };
-        setError(err?.message || "未知错误");
-        setStreaming(false);
-      }
-    });
-    port.onDisconnect.addListener(() => {
-      if (portRef.current === port) portRef.current = null;
-    });
 
     const system = buildWritingAnalysisSystemPrompt({
       genreLabel: `${genreLabel}（用户选择）`,
@@ -84,19 +64,26 @@ export function WritingAnalysisTab() {
       .filter(Boolean)
       .join("\n");
 
-    port.postMessage({
-      type: "llm:prompt",
-      payload: {
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      },
-    });
+    port.startPrompt(
+      [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+      {
+        onChunk: (chunk) => {
+          if (chunk.translatedText) setOutput(chunk.translatedText);
+        },
+        onDone: () => setStreaming(false),
+        onError: (message) => {
+          setError(message);
+          setStreaming(false);
+        },
+      }
+    );
   };
 
   const stop = () => {
-    portRef.current?.postMessage({ type: "translate:stream:abort" });
+    port.abort();
     setStreaming(false);
   };
 

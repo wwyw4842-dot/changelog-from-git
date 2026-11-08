@@ -1,11 +1,14 @@
 import Dexie, { type EntityTable } from "dexie";
-import type { ActivityDay, HistoryEntry, ReviewArticleEntry, VocabularyEntry } from "../types";
+import type { ActivityDay, HistoryEntry, ReviewArticleEntry, VocabularyEntry, SyncOutboxEntry, FolioSyncBinding } from "../types";
 
 export class PolyglotDB extends Dexie {
   history!: EntityTable<HistoryEntry, "id">;
   vocabulary!: EntityTable<VocabularyEntry, "id">;
   activity!: EntityTable<ActivityDay, "date">;
   reviewArticles!: EntityTable<ReviewArticleEntry, "id">;
+
+  syncOutbox!: EntityTable<SyncOutboxEntry, "id">;
+  syncBinding!: EntityTable<FolioSyncBinding, "id">;
 
   constructor() {
     super("polyglot");
@@ -32,6 +35,19 @@ export class PolyglotDB extends Dexie {
       .upgrade(() => {
         // reviewArticles 表首次创建，无需搬迁
       });
+    this.version(4).stores({
+      vocabulary: "++id, word, addedAt, nextReviewAt, expressionId",
+      syncOutbox: "++id, &eventId, vocabularyId",
+      syncBinding: "&id",
+    }).upgrade(async (tx) => {
+      await tx.table<VocabularyEntry>("vocabulary").toCollection().modify((entry) => {
+        entry.legacyReview = {
+          nextReviewAt: entry.nextReviewAt, easeFactor: entry.easeFactor,
+          interval: entry.interval, reps: entry.reps, lapses: entry.lapses,
+        };
+        entry.synced = false;
+      });
+    });
   }
 }
 

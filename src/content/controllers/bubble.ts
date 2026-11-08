@@ -1,5 +1,5 @@
 import { send } from "@shared/messaging";
-import { detectLangHint, suggestTargetLang } from "@shared/utils";
+import { detectLangHint } from "@shared/utils";
 import { createBubbleHost, type BubbleHandle } from "../bubble/BubbleHost";
 import type { SettingsAccessor, ShowCardParams } from "./types";
 
@@ -47,22 +47,18 @@ export function createBubbleController({
       onCopyTarget: () => void navigator.clipboard?.writeText(params.translatedText),
       onSpeak: () => {
         const lang = detectLangHint(params.originalText);
-        void send("tts:speak", {
+        return send("tts:speak", {
           text: params.originalText,
           lang: lang === "auto" ? undefined : lang,
-        });
+        }).then(() => {});
       },
       onStop: () => void send("tts:stop"),
       onSave: () => void saveVocabulary(params.originalText),
       onDeep: () => void translateDeep(params.originalText),
       onRetry: () => retryLast(),
       onOpenPanel: () => {
-        void send("translate:selection", {
-          text: params.originalText,
-          from: detectLangHint(params.originalText),
-          to: suggestTargetLang(params.originalText, settings?.targetLang || "zh-CN"),
-          mode: "quick",
-          openSidePanel: true,
+        void send("sidepanel:open").catch((error) => {
+          console.warn("[polyglot] side panel open failed", error);
         });
       },
     });

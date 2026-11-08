@@ -4,119 +4,39 @@ Guidance for AI assistants working in this repository.
 
 ## What this is
 
-**Polyglot** (`package.json` name: `polyglot`, v2.0.0) is an AI-powered language
-assistant browser extension for Chrome/Edge (Manifest V3). It provides
-selection translation, a multi-engine translation matrix, LLM "deep reading",
-a vocabulary notebook with SM-2 spaced repetition, immersive full-page
-translation, PDF/OCR, and input-box enhancement.
-
-The repo began life as a single-file Python changelog generator; that history
-still shows in older tags and in `CHANGELOG.md`, but the codebase is now the
-TypeScript extension described here. `README.md` is the most detailed
-user/architecture reference (written in Chinese) and is worth reading.
-
-## Tech stack
-
-- **Build:** Vite 5 + `@crxjs/vite-plugin` (MV3 bundling & HMR)
-- **UI:** React 18 + TypeScript (strict) + TailwindCSS 3 (+ PostCSS, Autoprefixer)
-- **State/data:** Zustand, Dexie (IndexedDB), Zod (validation)
-- **OCR:** tesseract.js (lazy-loaded from CDN on first use)
-- **Tests:** Vitest (jsdom) for unit, Playwright for e2e
-- **Lint/format:** ESLint (TS + React) + Prettier
+**Foliole** (formerly **Polyglot**, `package.json` name: `polyglot`, v2.0.0) is a Chrome/Edge Manifest V3 extension (TypeScript + React + Vite + Tailwind) for AI-assisted language learning and reading: selection-bubble translation, immersive page translation, vocabulary capture with Folio FSRS-6 synchronization, IELTS writing/speaking practice, OCR, and PDF support.
 
 ## Commands
 
 ```bash
 npm install          # install deps (first run)
 npm run dev          # Vite + CRXJS dev server with extension HMR
-npm run build        # tsc -b && vite build → dist/
-npm run preview      # preview a production build
+npm run build        # tsc -b && vite build → dist/ (load in chrome://extensions)
 npm run lint         # eslint "src/**/*.{ts,tsx}"
 npm run format       # prettier --write
-npm test             # vitest run (unit)
-npm run test:watch   # vitest watch
-npm run test:e2e     # playwright test (tests-e2e/)
-npm run test:e2e:ui  # playwright --ui
+npm test             # vitest unit tests
+npm run test:e2e     # Playwright e2e (builds dist/ first; loads extension)
+npx vitest run src/providers/registry.test.ts   # single test file
 ```
 
-Load the unpacked extension from `dist/` via `chrome://extensions/` (or
-`edge://extensions/`) with developer mode enabled.
+## Architecture
 
-CI (`.github/workflows/ci.yml`) runs **lint → build → test** on Node 18 for
-pushes/PRs to `main`/`master`. Keep all three green.
+Message flow: **content script / sidepanel / popup** → typed message bus (`@shared/messaging` `send()` / `MessageRouter`) or the `polyglot-stream` Port → **background service worker** → provider chain.
 
-## Layout
-
-The manifest is defined in code at `manifest.config.ts` (MV3: background
-service worker, content script, popup, options page, side panel, commands,
-host permissions). Entry points and source live under `src/`:
-
-- `src/background/` — MV3 service worker (`service-worker.ts`) plus `handlers/`
-  (translation, stream, tts, settings, vocabulary). Routes messages, owns the
-  context menu, keyboard commands, and the streaming Port.
-- `src/content/` — content script `bootstrap.ts` coordinator and feature
-  controllers: `bubble/` (Shadow-DOM floating bubble), `immersive/` (full-page
-  translation), `pdf/`, `ocr/`, `inputEnhance/`, `vocabHighlight/`.
-- `src/providers/` — translation engine abstraction. `types.ts` defines
-  `TranslationProvider`; `registry.ts` does primary-engine + fallback-chain
-  dispatch; `cache.ts` is an LRU backed by `chrome.storage.local`. Classic
-  engines (`google`, `bing`, `deepl`, `volcano`, `mymemory`) plus `llm/`
-  (OpenAI, Claude, Gemini, Ollama, DeepSeek) which stream.
-- `src/shared/` — cross-cutting code: `messaging.ts` (typed bus), `storage/`
-  (`settings`, `history`, `vocabulary` SM-2, `crypto`, `db`), `i18n.ts`,
-  `validation.ts`, `utils.ts`, theme/UI hooks.
-- `src/sidepanel/`, `src/options/`, `src/popup/` — React + Tailwind UIs.
-- `tests-e2e/` — Playwright specs and fixtures.
-
-TypeScript path aliases (see `tsconfig.json`): `@/*` → `src/*`,
-`@shared/*` → `src/shared/*`, `@providers/*` → `src/providers/*`.
-
-## Architecture notes
-
-- **Typed message bus** (`src/shared/messaging.ts`): a mapped type pins each
-  channel's request/response types in one dictionary, avoiding stringly-typed
-  `switch (message.type)`.
-- **Provider abstraction**: every engine implements `TranslationProvider`. LLMs
-  return `AsyncIterable<Partial<TranslationResult>>` for streaming; classic
-  engines return once. `registry.translateViaChain` supports a primary engine,
-  a fallback chain, and an `onChunk` callback.
-- **Streaming channel**: content/sidepanel open a Port via
-  `chrome.runtime.connect({ name: "polyglot-stream" })`; the background forwards
-  chunks so tokens stream into the bubble or chat.
-- **Shadow DOM + Tailwind**: `bubble.css` is imported `?inline`, compiled to a
-  full Tailwind string, then injected into the Shadow Root via
-  `adoptedStyleSheets` — zero style bleed to/from the host page.
-- **SM-2 spaced repetition**: `reviewVocabulary(id, quality)` updates
-  `easeFactor / interval / reps` per SM-2 (min ease 1.3). Covered by
-  `src/shared/storage/vocabulary.test.ts`.
-- **Encrypted storage**: `src/shared/storage/crypto.ts` generates a 256-bit
-  AES-GCM master key at install (stored in `local`); API keys are saved as
-  `enc:<base64>`. Sensitive fields stay out of `chrome.storage.sync`.
+- `src/providers/` — translation engines behind `TranslationProvider`, dispatched via `registry.ts` (`translateViaChain` = primary + fallback chain + local Ollama fallback + cache + cancellation/timeouts).
+  - Free REST engines (`google`/`bing`/`deepl`/`volcano`) are built with `createRestProvider` (`rest-provider.ts`); language-code differences live in `lang-mapper.ts`.
+  - Streaming LLM engines (`openai`/`claude`/`gemini`/`deepseek`/`mimo`/`ollama`) use `createSSEProvider` (`llm/sse-provider.ts`) and shared `llm/delta-parsers.ts`.
+  - Freeform chat (`llm/chat.ts`) is an adapter table over the same parsers.
+- `src/background/` — MV3 service worker (`service-worker.ts`) and `handlers/`. `translate-helper.ts` `runTranslation()` is the shared enrich→chain→history pipeline; `handlers/stream.ts` owns the `polyglot-stream` Port with per-request `AbortController` and `request-budget.ts` concurrency leasing.
+- `src/shared/stream-protocol.ts` — discriminated-union message types for `polyglot-stream` (`translate:stream`, `translate:stream:abort`, `llm:prompt`).
+- `src/sidepanel/`, `src/options/`, `src/popup/` — React + Tailwind UIs. Sidepanel pages stream via `useStreamPort()`.
+- `src/content/` — `bootstrap.ts` coordinator, Shadow-DOM `bubble/` (`BubbleHost.ts` cancels deep stream on hide), `immersive/` bounded viewport translation with SPA navigation reset, `pdf/`, `ocr/`, `inputEnhance/`, `vocabHighlight/`.
+- `src/shared/storage/` — Dexie (`IndexedDB`) for `settings`, `history`, `vocabulary`, `syncOutbox`, `activity`, and `reviewArticles`; WebCrypto AES-GCM for API keys (`crypto.ts`); explicit Folio pairing token in `chrome.storage.local` (`folio-pairing.ts`) syncing durable capture/review outbox events with Folio's FSRS-6 authority (`vocabulary-sync.ts`).
 
 ## Conventions
 
-- TypeScript `strict` mode with `noUnusedLocals`/`noUnusedParameters` — unused
-  symbols fail the build. Run `npm run lint` and `npm test` before pushing.
-- Co-locate unit tests as `*.test.ts(x)` next to the code (Vitest `include`
-  globs `src/**/*.test.ts(x)`). These are excluded from the tsconfig build.
-- This repo dogfoods Conventional Commits (`type(scope): description`); the
-  large `CHANGELOG.md` reflects that.
-- Prefer the path aliases over deep relative imports.
-
-## Leftover / non-extension files
-
-- `changelog.py` — removed from the tree; ignore references to it in the old
-  `CLAUDE.md` history.
-- `count_lines.py`, `probe.txt` — small assessment-task artifacts, not part of
-  the extension. Leave them alone unless asked.
-- `.claude/skills/guizang-social-card-skill/` — a vendored Claude skill,
-  unrelated to the extension build.
-
-## Git workflow for this environment
-
-- Develop on the branch you were assigned for the session; create it locally if
-  needed.
-- Push with `git push -u origin <branch>`, then open a **draft** PR if one does
-  not already exist.
-- Use the GitHub MCP tools (`mcp__github__*`) for GitHub operations — the `gh`
-  CLI is not available here.
+- Path aliases: `@/*` → `src/*`, `@shared/*` → `src/shared/*`, `@providers/*` → `src/providers/*`.
+- TypeScript `strict` mode with `noUnusedLocals`/`noUnusedParameters` — keep `npm run lint`, `npm test`, and `npm run build` green.
+- Provider errors use `ProviderError` with stable error codes (`EMPTY_TEXT`, `HTTP_ERROR`, `AUTHENTICATION_FAILURE`, `MISSING_CREDENTIALS`, `EMPTY_RESULT`, `TIMEOUT`, …).
+- Unit tests (`*.test.ts(x)`) are co-located under `src/` (and `tests/`), excluded from `tsc -b`, and run by Vitest.
+- `vite.config.ts` keeps `base: "./"` so `chrome-extension://` pages resolve bundled assets.

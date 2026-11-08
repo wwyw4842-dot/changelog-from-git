@@ -1,8 +1,7 @@
-import type { TranslationResult } from "@shared/types";
 import { ProviderError } from "@shared/provider-error";
-import { normalizeText } from "@shared/utils";
 import { BingTranslateResponseSchema, parseProviderJson } from "@shared/validation";
-import type { TranslationProvider } from "./types";
+import { mapLang } from "./lang-mapper";
+import { createRestProvider } from "./rest-provider";
 
 const SESSION_URL = "https://www.bing.com/translator";
 const TRANSLATE_URL = "https://www.bing.com/ttranslatev3";
@@ -18,71 +17,38 @@ interface BingSession {
 let sessionCache: BingSession | null = null;
 const SESSION_TTL_MS = 30 * 60 * 1000;
 
-export const bingProvider: TranslationProvider = {
+export const bingProvider = createRestProvider({
   id: "bing",
   displayName: "Bing",
   description: "微软必应翻译 Web 端点，对中英友好。",
-  capabilities: { stream: false, deep: false, needsCredentials: false, langs: "*" },
-  async translate(req, ctx): Promise<TranslationResult> {
-    const text = normalizeText(req.text);
-    if (!text) {
-      throw new ProviderError({
-        code: "EMPTY_TEXT",
-        providerId: "bing",
-        retryable: false,
-        userMessage: "Empty text.",
-      });
-    }
+  async buildRequest(text, req, ctx) {
     const session = await getSession(ctx.signal);
     const body = new URLSearchParams({
-      fromLang: req.from === "auto" ? "auto-detect" : mapLang(req.from),
-      to: mapLang(req.to),
+      fromLang: req.from === "auto" ? "auto-detect" : mapLang("bing", req.from),
+      to: mapLang("bing", req.to),
       text,
       token: session.token,
       key: session.key,
     });
-    const url = `${TRANSLATE_URL}?isVertical=1&IG=${session.ig}&IID=${session.iid}`;
-    const response = await fetch(url, {
-      method: "POST",
-      signal: ctx.signal,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Accept: "*/*",
-      },
-      body,
-    });
-    if (!response.ok) {
-      sessionCache = null;
-      throw new ProviderError({
-        code: "HTTP_ERROR",
-        providerId: "bing",
-        status: response.status,
-        userMessage: `Bing ${response.status}`,
-      });
-    }
-    const data = parseProviderJson(
-      BingTranslateResponseSchema,
-      await response.json(),
-      "bing",
-      "Bing"
-    );
-    const translated = data?.[0]?.translations?.[0]?.text?.trim();
-    if (!translated) {
-      sessionCache = null;
-      throw new ProviderError({
-        code: "EMPTY_RESULT",
-        providerId: "bing",
-        retryable: true,
-        userMessage: "Bing empty result",
-      });
-    }
     return {
-      originalText: text,
-      translatedText: translated,
-      provider: "bing",
+      url: `${TRANSLATE_URL}?isVertical=1&IG=${session.ig}&IID=${session.iid}`,
+      init: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "*/*",
+        },
+        body,
+      },
     };
   },
-};
+  parseResponse: (raw) => parseProviderJson(BingTranslateResponseSchema, raw, "bing", "Bing"),
+  extractText: (data) => data?.[0]?.translations?.[0]?.text,
+  // 请求失败往往意味着 token 过期，强制下次重新抓取 session
+  onRequestFailed: () => {
+    sessionCache = null;
+  },
+});
 
 async function getSession(signal?: AbortSignal): Promise<BingSession> {
   if (sessionCache && Date.now() - sessionCache.fetchedAt < SESSION_TTL_MS) {
@@ -117,14 +83,4 @@ async function getSession(signal?: AbortSignal): Promise<BingSession> {
     fetchedAt: Date.now(),
   };
   return sessionCache;
-}
-
-function mapLang(code: string): string {
-  const c = code.toLowerCase();
-  if (c === "zh-cn" || c === "zh") return "zh-Hans";
-  if (c === "zh-tw") return "zh-Hant";
-  if (c === "en") return "en";
-  if (c === "ja") return "ja";
-  if (c === "ko") return "ko";
-  return c.split("-")[0];
 }

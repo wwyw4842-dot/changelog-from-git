@@ -22,6 +22,14 @@ export async function bumpActivity(field: ActivityField, amount = 1): Promise<vo
   });
 }
 
+export async function getYearActivity(): Promise<ActivityDay[]> {
+  const year = new Date().getFullYear();
+  return db.activity
+    .where("date")
+    .between(`${year}-01-01`, `${year}-12-31`, true, true)
+    .toArray();
+}
+
 export async function getDailyStats(): Promise<ActivityStats> {
   const today = dayKey();
   const todayRecord = (await db.activity.get(today)) ?? emptyDay(today);

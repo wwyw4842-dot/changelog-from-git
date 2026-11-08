@@ -45,7 +45,7 @@ test("MV3 disconnect and replacement abort HTTP streams and release the shared b
   extensionId,
 }) => {
   await page.goto(`chrome-extension://${extensionId}/src/options/options.html`);
-  await expect(page.getByText("AI · 设置中心")).toBeVisible();
+  await expect(page.getByText("设置中心", { exact: true })).toBeVisible();
   await expect.poll(() => page.evaluate(async () => {
     const settings = await chrome.runtime.sendMessage({ type: "settings:get" });
     return settings.data.migratedTo;

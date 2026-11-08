@@ -11,39 +11,41 @@ import { useTheme } from "@shared/useTheme";
 
 type SectionKey = "general" | "providers" | "shortcuts" | "advanced";
 
-const UI = {
-  shell: "min-h-screen text-ink-900",
-  surface:
-    "sticky top-0 z-20 border-b border-cream-300/70 bg-cream-100/80 backdrop-blur-xl",
-  headerInner: "mx-auto flex max-w-4xl items-center justify-between px-6 py-4",
-  brandWrap: "flex items-center gap-3",
-  brandMark:
-    "relative grid h-9 w-9 place-items-center rounded-full text-[14px] font-bold text-white shadow-coral bg-gradient-to-br from-brand-400 to-brand-600",
-  brandStack: "flex flex-col leading-tight",
-  brandTitle:
-    "poly-serif poly-letter-reveal text-[20px] font-bold tracking-tight text-ink-900",
-  brandMain: "text-ink-900",
-  brandSuffix: "text-brand-600/80 text-[11px] font-medium uppercase tracking-[0.2em] ml-1",
-  brandSub:
-    "text-[11px] font-medium uppercase tracking-[0.2em] text-brand-600/80 mt-0.5",
-  saveStatusDone:
-    "rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200 poly-fade-up",
-  saveStatusAuto:
-    "rounded-full bg-cream-200 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-500 ring-1 ring-inset ring-cream-300",
-  bodyWrap: "mx-auto flex max-w-4xl gap-6 px-6 py-8",
-  nav: "w-52 shrink-0 space-y-1 text-sm",
-  content: "flex-1 space-y-4 poly-stagger",
-  navItemActiveButton:
-    "poly-serif relative block w-full rounded-xl px-3.5 py-2 text-left text-[14px] font-semibold transition bg-cream-100 text-brand-700 shadow-softer ring-1 ring-inset ring-brand-200",
-  navItemIdleButton:
-    "poly-serif relative block w-full rounded-xl px-3.5 py-2 text-left text-[14px] text-ink-500 transition hover:bg-cream-100/70 hover:text-ink-900",
-} as const;
-
-const NAV: { key: SectionKey; label: string }[] = [
-  { key: "general", label: "通用" },
-  { key: "providers", label: "翻译引擎" },
-  { key: "shortcuts", label: "快捷键" },
-  { key: "advanced", label: "高级 / 数据" },
+const NAV: {
+  key: SectionKey;
+  label: string;
+  description: string;
+  title: string;
+  introduction: string;
+}[] = [
+  {
+    key: "general",
+    label: "通用",
+    description: "翻译习惯与外观",
+    title: "通用设置",
+    introduction: "调整划词方式、语言、界面外观和学习目标。",
+  },
+  {
+    key: "providers",
+    label: "翻译服务",
+    description: "选择并连接服务",
+    title: "翻译服务",
+    introduction: "为快速翻译、深度解读和学习功能选择合适的服务。",
+  },
+  {
+    key: "shortcuts",
+    label: "快捷键",
+    description: "更快打开常用能力",
+    title: "快捷键",
+    introduction: "用键盘完成翻译、整页阅读和深度解读。",
+  },
+  {
+    key: "advanced",
+    label: "功能与数据",
+    description: "扩展能力和数据管理",
+    title: "功能与数据",
+    introduction: "管理阅读辅助功能，并导出或清理本地数据。",
+  },
 ];
 
 export function OptionsApp() {
@@ -52,6 +54,7 @@ export function OptionsApp() {
   useTheme(settings.theme);
   const [active, setActive] = useState<SectionKey>("general");
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [panelStatus, setPanelStatus] = useState<"idle" | "opening" | "opened" | "error">("idle");
 
   useEffect(() => {
     send("settings:get").then(setSettings).catch(console.error);
@@ -63,45 +66,105 @@ export function OptionsApp() {
     setSavedAt(Date.now());
   };
 
+  const openLearningPanel = async () => {
+    setPanelStatus("opening");
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id || !chrome.sidePanel?.open) throw new Error("Side panel is unavailable");
+      await chrome.sidePanel.open({ tabId: tab.id });
+      setPanelStatus("opened");
+    } catch (error) {
+      console.error("[foliole] open side panel failed", error);
+      setPanelStatus("error");
+    }
+  };
+
+  const current = NAV.find((item) => item.key === active) ?? NAV[0];
+
   return (
-    <div className={UI.shell}>
-      <header className={UI.surface}>
-        <div className={UI.headerInner}>
-          <div className={UI.brandWrap}>
-            <span className={UI.brandMark} aria-hidden>
-              P
-            </span>
-            <span className={UI.brandStack}>
-              <span className={UI.brandTitle}>Polyglot</span>
-              <span className={UI.brandSub}>AI · 设置中心</span>
+    <div className="foliole-options-shell">
+      <header className="foliole-options-header">
+        <div className="foliole-options-header-inner">
+          <div className="foliole-options-brand">
+            <img
+              className="foliole-options-brand-mark"
+              src="/public/icons/foliole-icon.svg"
+              alt=""
+              aria-hidden
+            />
+            <span className="foliole-options-brand-copy">
+              <span className="foliole-options-brand-name">Foliole</span>
+              <span className="foliole-options-brand-subtitle">设置中心</span>
             </span>
           </div>
-          <span
-            key={savedAt ?? "auto"}
-            className={savedAt ? UI.saveStatusDone : UI.saveStatusAuto}
-          >
-            {savedAt ? "已保存" : "自动保存"}
-          </span>
+          <div className="foliole-options-header-actions">
+            <button
+              type="button"
+              className="foliole-options-open-panel"
+              onClick={openLearningPanel}
+              disabled={panelStatus === "opening"}
+            >
+              <span aria-hidden>→</span>
+              {panelStatus === "opening"
+                ? "正在打开…"
+                : panelStatus === "opened"
+                  ? "学习侧栏已打开"
+                  : "打开学习侧栏"}
+            </button>
+            <span
+              key={savedAt ?? "auto"}
+              className={`foliole-options-save-status ${savedAt ? "is-saved" : ""}`}
+              role="status"
+              aria-live="polite"
+            >
+              <span aria-hidden />
+              {savedAt ? "已保存" : "自动保存"}
+            </span>
+          </div>
         </div>
       </header>
-      <div className={UI.bodyWrap}>
-        <nav className={UI.nav}>
-          {NAV.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setActive(item.key)}
-              className={active === item.key ? UI.navItemActiveButton : UI.navItemIdleButton}
-            >
-              {item.label}
-            </button>
-          ))}
+
+      {panelStatus === "error" ? (
+        <div className="foliole-options-toast is-error" role="alert">
+          暂时无法打开侧栏。请回到普通网页后重试，或点击 Chrome 右上角的侧栏按钮。
+        </div>
+      ) : null}
+
+      <div className="foliole-options-layout">
+        <nav className="foliole-options-nav" aria-label="设置分类">
+          <div className="foliole-options-nav-intro">
+            <span>设置</span>
+            <p>按需要调整 Foliole</p>
+          </div>
+          <div className="foliole-options-nav-list">
+            {NAV.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setActive(item.key)}
+                className={active === item.key ? "is-active" : ""}
+                aria-current={active === item.key ? "page" : undefined}
+              >
+                <span className="foliole-options-nav-label">{item.label}</span>
+                <span className="foliole-options-nav-description">{item.description}</span>
+              </button>
+            ))}
+          </div>
         </nav>
-        <section key={active} className={UI.content}>
-          {active === "general" && <GeneralSection settings={settings} onUpdate={update} />}
-          {active === "providers" && <ProvidersSection settings={settings} onUpdate={update} />}
-          {active === "shortcuts" && <ShortcutsSection />}
-          {active === "advanced" && <AdvancedSection settings={settings} onUpdate={update} />}
-        </section>
+
+        <main className="foliole-options-main">
+          <div className="foliole-options-section-heading">
+            <p>Foliole 设置</p>
+            <h1>{current.title}</h1>
+            <span>{current.introduction}</span>
+          </div>
+          <section key={active} className="foliole-options-content" aria-label={current.title}>
+            {active === "general" && <GeneralSection settings={settings} onUpdate={update} />}
+            {active === "providers" && <ProvidersSection settings={settings} onUpdate={update} />}
+            {active === "shortcuts" && <ShortcutsSection />}
+            {active === "advanced" && <AdvancedSection settings={settings} onUpdate={update} />}
+          </section>
+        </main>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { send } from "@shared/messaging";
 import type { Settings, VocabularyEntry } from "@shared/types";
+import { useStreamPort } from "../hooks/useStreamPort";
 import { sideUi } from "./ui";
 
 interface Turn {
@@ -83,16 +84,12 @@ export function PracticeTab() {
   const [useAll, setUseAll] = useState(true);
   const [started, setStarted] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const portRef = useRef<chrome.runtime.Port | null>(null);
-  const activeIdRef = useRef<string | null>(null);
+  const port = useStreamPort();
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     void send("vocabulary:list", { limit: 200 }).then(setVocab);
     void send("settings:get").then(setSettings);
-    return () => {
-      portRef.current?.disconnect();
-    };
   }, []);
 
   useEffect(() => {
@@ -176,44 +173,6 @@ export function PracticeTab() {
     ].join("\n");
   }, [scenario, activeVocab, settings?.ieltsTarget]);
 
-  const ensurePort = useCallback(() => {
-    if (portRef.current) return portRef.current;
-    const port = chrome.runtime.connect({ name: "polyglot-stream" });
-    port.onMessage.addListener((message: { type: string; payload?: unknown }) => {
-      const id = activeIdRef.current;
-      if (!id) return;
-      setTurns((prev) =>
-        prev.map((turn) => {
-          if (turn.id !== id) return turn;
-          if (message.type === "chunk") {
-            const chunk = message.payload as { translatedText?: string };
-            return { ...turn, text: chunk.translatedText || turn.text };
-          }
-          if (message.type === "done") {
-            return { ...turn, streaming: false };
-          }
-          if (message.type === "error") {
-            const err = message.payload as { message?: string };
-            return {
-              ...turn,
-              text: `出错：${err?.message || "unknown"}`,
-              streaming: false,
-            };
-          }
-          return turn;
-        })
-      );
-      if (message.type === "done" || message.type === "error") {
-        activeIdRef.current = null;
-      }
-    });
-    port.onDisconnect.addListener(() => {
-      portRef.current = null;
-    });
-    portRef.current = port;
-    return port;
-  }, []);
-
   const send_ = (userText: string) => {
     const userId = `u-${Date.now()}`;
     const assistantId = `a-${Date.now()}`;
@@ -221,7 +180,10 @@ export function PracticeTab() {
     if (userText) nextTurns.push({ id: userId, role: "user", text: userText });
     nextTurns.push({ id: assistantId, role: "assistant", text: "...", streaming: true });
     setTurns(nextTurns);
-    activeIdRef.current = assistantId;
+
+    const updateTurn = (patch: (turn: Turn) => Turn) => {
+      setTurns((prev) => prev.map((turn) => (turn.id === assistantId ? patch(turn) : turn)));
+    };
 
     const messages = [
       { role: "system" as const, content: systemPrompt },
@@ -233,10 +195,14 @@ export function PracticeTab() {
         })),
     ];
 
-    const port = ensurePort();
-    port.postMessage({
-      type: "llm:prompt",
-      payload: { messages },
+    port.startPrompt(messages, {
+      onChunk: (chunk) => {
+        updateTurn((turn) => ({ ...turn, text: chunk.translatedText || turn.text }));
+      },
+      onDone: () => updateTurn((turn) => ({ ...turn, streaming: false })),
+      onError: (message) => {
+        updateTurn((turn) => ({ ...turn, text: `出错：${message}`, streaming: false }));
+      },
     });
   };
 
@@ -257,7 +223,7 @@ export function PracticeTab() {
   };
 
   const stop = () => {
-    portRef.current?.postMessage({ type: "translate:stream:abort" });
+    port.abort();
   };
 
   const reset = () => {

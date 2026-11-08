@@ -144,7 +144,7 @@ export const sideUi = {
   reviewAnswer: "mt-3 text-base text-ink-900",
   reviewContext: "mt-2 text-xs italic text-ink-500",
   reviewExamplesList: "mt-3 space-y-2 text-xs text-ink-700",
-  reviewGradesGrid: "mt-4 grid grid-cols-6 gap-1.5 text-xs",
+  reviewGradesGrid: "mt-4 grid grid-cols-2 gap-1.5 text-xs",
   reviewHint:
     "mt-3 text-[10px] uppercase tracking-[0.14em] text-ink-400",
 
@@ -342,6 +342,10 @@ export const sideUi = {
     "text-[10px] uppercase tracking-[0.12em] text-ink-400",
   dashboardMetricsGrid: "grid grid-cols-3 gap-2",
   dashboardChartWrap: "mt-4",
+  heatmapWrap: "mt-4",
+  heatmapGrid: "flex gap-px overflow-x-auto pt-1",
+  heatmapWeekCol: "flex flex-col gap-px",
+  heatmapCell: "w-2 h-2 rounded-sm flex-shrink-0",
   dashboardChartHeader:
     "mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.12em] text-ink-400",
   dashboardChartBars: "flex h-16 items-end gap-1",
@@ -387,6 +391,7 @@ export const sideUi = {
     "poly-serif text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-500",
 
   stackLg: "space-y-4",
+  vocabToolbar: "flex items-center justify-between gap-2",
   vocabModeRow: "flex items-center gap-1 text-xs",
   stackTight: "space-y-1.5",
   badgeBase:

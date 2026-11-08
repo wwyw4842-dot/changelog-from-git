@@ -4,9 +4,9 @@ const version = "2.0.0";
 
 export default defineManifest({
   manifest_version: 3,
-  name: "Polyglot - AI 语言助手",
-  short_name: "Polyglot",
-  description: "多引擎划词翻译 + LLM 深度解读 + 生词本 SRS + 沉浸式整页翻译 + PDF/OCR。",
+  name: "Foliole - AI 词汇分生叶",
+  short_name: "Foliole",
+  description: "Folio 伴生外刊阅读与生词采集小分叶，一秒同步雅思备考本。",
   version,
   icons: {
     16: "public/icons/icon-16.png",
@@ -15,7 +15,7 @@ export default defineManifest({
     128: "public/icons/icon-128.png",
   },
   action: {
-    default_title: "Polyglot",
+    default_title: "Foliole",
     default_popup: "src/popup/popup.html",
   },
   options_ui: {
@@ -29,6 +29,10 @@ export default defineManifest({
     service_worker: "src/background/service-worker.ts",
     type: "module",
   },
+  // tesseract.js 在 offscreen 文档中使用 WebAssembly，MV3 需显式放行。
+  content_security_policy: {
+    extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+  },
   content_scripts: [
     {
       matches: ["<all_urls>"],
@@ -39,6 +43,7 @@ export default defineManifest({
   ],
   permissions: [
     "storage",
+    "alarms",
     "activeTab",
     "scripting",
     "tts",

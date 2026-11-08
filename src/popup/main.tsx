@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import "@shared/theme.css";
+import "./popup.css";
 import { PopupApp } from "./App";
 
 const root = document.getElementById("root");
