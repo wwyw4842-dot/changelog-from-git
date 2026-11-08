@@ -13,6 +13,7 @@ export type ComposeState = {
 
 // 根据下次复习时间返回徽章颜色样式
 export function dueColor(item: VocabularyEntry): string {
+  if (item.pendingReview || !item.review) return `${sideUi.badgeBase} bg-amber-500/15 text-amber-700`;
   const diff = item.nextReviewAt - Date.now();
   if (diff <= 0) return `${sideUi.badgeBase} bg-amber-500/15 text-amber-300`;
   if (diff < 24 * 60 * 60 * 1000) return `${sideUi.badgeBase} bg-emerald-500/10 text-emerald-300`;
@@ -21,6 +22,8 @@ export function dueColor(item: VocabularyEntry): string {
 
 // 根据下次复习时间返回文案（待复习 / 今日内 / 明天 / N 天后）
 export function dueLabel(item: VocabularyEntry): string {
+  if (item.pendingReview) return "待同步排期";
+  if (!item.review) return "等待 Folio 排期";
   const diff = item.nextReviewAt - Date.now();
   if (diff <= 0) return "待复习";
   const days = Math.round(diff / (24 * 60 * 60 * 1000));

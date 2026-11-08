@@ -27,22 +27,22 @@ async function installContextMenus(): Promise<void> {
     await chrome.contextMenus.removeAll();
     chrome.contextMenus.create({
       id: "polyglot-translate-selection",
-      title: "Polyglot: 翻译 “%s”",
+      title: "Foliole: 翻译 “%s”",
       contexts: ["selection"],
     });
     chrome.contextMenus.create({
       id: "polyglot-add-vocab",
-      title: "Polyglot: 加入生词本",
+      title: "Foliole: 加入生词本",
       contexts: ["selection"],
     });
     chrome.contextMenus.create({
       id: "polyglot-translate-page",
-      title: "Polyglot: 沉浸式整页翻译",
+      title: "Foliole: 沉浸式整页翻译",
       contexts: ["page"],
     });
     chrome.contextMenus.create({
       id: "polyglot-ocr-image",
-      title: "Polyglot: OCR 翻译图片文字",
+      title: "Foliole: OCR 翻译图片文字",
       contexts: ["image"],
     });
   } catch (error) {

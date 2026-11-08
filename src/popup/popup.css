@@ -1,0 +1,284 @@
+body.poly-popup {
+  --foliole-popup-paper: var(--paper-50);
+  --foliole-popup-paper-muted: var(--paper-200);
+  --foliole-popup-ink: var(--ink-900);
+  --foliole-popup-ink-soft: var(--ink-700);
+  --foliole-popup-muted: var(--ink-500);
+  --foliole-popup-line: var(--paper-300);
+  --foliole-popup-coral: var(--coral-500);
+  --foliole-popup-coral-dark: var(--coral-600);
+  --foliole-popup-coral-soft: color-mix(in srgb, var(--coral-300) 28%, var(--paper-50));
+  min-width: 380px;
+  background: var(--foliole-popup-paper);
+  background-image: none;
+}
+
+body.poly-popup::before {
+  display: none;
+}
+
+.foliole-popup {
+  box-sizing: border-box;
+  width: 380px;
+  max-height: 600px;
+  padding: 16px;
+  overflow-y: auto;
+  color: var(--foliole-popup-ink);
+  background: var(--foliole-popup-paper);
+}
+
+.foliole-popup > * + * {
+  margin-top: 12px;
+}
+
+.foliole-popup-header,
+.foliole-popup-brand,
+.foliole-popup-brand-copy,
+.foliole-popup-launch-button {
+  display: flex;
+  align-items: center;
+}
+
+.foliole-popup-header {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.foliole-popup-brand {
+  min-width: 0;
+  gap: 10px;
+}
+
+.foliole-popup-brand-mark {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 8px;
+  box-shadow: 0 7px 20px -10px rgba(38, 36, 31, 0.72);
+}
+
+.foliole-popup-brand-copy {
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.foliole-popup-brand-name {
+  color: var(--foliole-popup-ink);
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.foliole-popup-brand-subtitle {
+  max-width: 230px;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--foliole-popup-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.foliole-popup-settings {
+  min-height: 36px;
+  flex: none;
+  padding: 6px 10px;
+  border: 1px solid var(--foliole-popup-line);
+  border-radius: 8px;
+  color: var(--foliole-popup-muted);
+  background: var(--foliole-popup-paper);
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.foliole-popup-settings:hover {
+  color: var(--foliole-popup-coral-dark);
+  border-color: color-mix(in srgb, var(--foliole-popup-coral) 42%, var(--foliole-popup-line));
+  background: var(--foliole-popup-coral-soft);
+}
+
+.foliole-popup-settings:active {
+  transform: scale(0.98);
+}
+
+.foliole-popup-launch {
+  padding: 15px;
+  border: 1px solid var(--foliole-popup-line);
+  border-radius: 14px;
+  background: var(--foliole-popup-paper);
+  box-shadow: 0 9px 28px rgba(55, 42, 34, 0.06);
+}
+
+.foliole-popup-launch-eyebrow,
+.foliole-popup-launch-title,
+.foliole-popup-launch-hint,
+.foliole-popup-panel-error {
+  margin: 0;
+}
+
+.foliole-popup-launch-eyebrow {
+  color: var(--foliole-popup-coral-dark);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.foliole-popup-launch-title {
+  margin-top: 5px;
+  color: var(--foliole-popup-ink);
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+
+.foliole-popup-launch-hint {
+  margin-top: 4px;
+  color: var(--foliole-popup-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.foliole-popup-launch-button {
+  width: 100%;
+  min-height: 46px;
+  justify-content: space-between;
+  margin-top: 13px;
+  padding: 9px 13px;
+  border: 1px solid #a64f42;
+  border-radius: 10px;
+  color: #fff;
+  background: #a64f42;
+  box-shadow: 0 10px 24px -13px rgba(154, 74, 61, 0.8);
+  font-size: 13px;
+  font-weight: 800;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+html[data-poly-theme="dark"] body.poly-popup .foliole-popup-launch-button {
+  color: #1a1612;
+  border-color: #e1a795;
+  background: #e1a795;
+}
+
+@media (prefers-color-scheme: dark) {
+  body.poly-popup .foliole-popup-launch-button {
+    color: #1a1612;
+    border-color: #e1a795;
+    background: #e1a795;
+  }
+}
+
+html[data-poly-theme="light"] body.poly-popup .foliole-popup-launch-button {
+  color: #fff;
+  border-color: #a64f42;
+  background: #a64f42;
+}
+
+.foliole-popup-launch-button:hover:not(:disabled) {
+  border-color: var(--foliole-popup-coral-dark);
+  background: var(--foliole-popup-coral-dark);
+  box-shadow: 0 13px 28px -13px rgba(154, 74, 61, 0.9);
+  transform: translateY(-1px);
+}
+
+.foliole-popup-launch-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.99);
+}
+
+.foliole-popup-launch-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.foliole-popup-launch-arrow {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.foliole-popup-launch-button:hover .foliole-popup-launch-arrow {
+  transform: translateX(2px);
+}
+
+.foliole-popup-quick-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.foliole-popup-quick-button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 5px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--foliole-popup-ink-soft);
+  background: var(--foliole-popup-paper-muted);
+  font-size: 11px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.foliole-popup-quick-button:hover:not(:disabled) {
+  color: var(--foliole-popup-coral-dark);
+  border-color: color-mix(in srgb, var(--foliole-popup-coral) 30%, var(--foliole-popup-line));
+  background: var(--foliole-popup-coral-soft);
+  transform: translateY(-1px);
+}
+
+.foliole-popup-quick-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.foliole-popup-quick-button:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
+.foliole-popup-panel-error {
+  margin-top: 9px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: #a83f3f;
+  background: color-mix(in srgb, #d96b6b 13%, var(--foliole-popup-paper));
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.foliole-popup :where(button, textarea):focus-visible {
+  outline: 3px solid var(--foliole-popup-coral);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foliole-popup *,
+  .foliole-popup *::before,
+  .foliole-popup *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

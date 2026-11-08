@@ -1,7 +1,7 @@
-import type { VocabularyEntry } from "@shared/types";
+import type { VocabularyEntry, ReviewRating } from "@shared/types";
 import { sideUi } from "../ui";
 
-// 复习卡片模式：先显示单词，点击显示答案后可按 SM-2 质量评级打分
+// Folio uses these four recall ratings to calculate FSRS-6 scheduling.
 export function ReviewMode({
   current,
   progress,
@@ -13,7 +13,7 @@ export function ReviewMode({
   progress: string;
   revealed: boolean;
   onReveal: () => void;
-  onGrade: (quality: 0 | 1 | 2 | 3 | 4 | 5) => void;
+  onGrade: (rating: ReviewRating) => void;
 }) {
   return (
     <div className={sideUi.card}>
@@ -43,16 +43,14 @@ export function ReviewMode({
           )}
           <div className={sideUi.reviewGradesGrid}>
             {[
-              { label: "记不起", q: 0, toneClass: sideUi.reviewGradeDangerStrongButton },
-              { label: "差", q: 1, toneClass: sideUi.reviewGradeDangerButton },
-              { label: "勉强", q: 2, toneClass: sideUi.reviewGradeWarnButton },
-              { label: "合格", q: 3, toneClass: sideUi.reviewGradeMidButton },
-              { label: "熟练", q: 4, toneClass: sideUi.reviewGradeGoodButton },
-              { label: "完美", q: 5, toneClass: sideUi.reviewGradeBestButton },
+              { label: "忘记", q: "again", toneClass: sideUi.reviewGradeDangerStrongButton },
+              { label: "吃力想起", q: "hard", toneClass: sideUi.reviewGradeWarnButton },
+              { label: "正常想起", q: "good", toneClass: sideUi.reviewGradeGoodButton },
+              { label: "轻松想起", q: "easy", toneClass: sideUi.reviewGradeBestButton },
             ].map(({ label, q, toneClass }) => (
               <button
                 key={q}
-                onClick={() => onGrade(q as 0 | 1 | 2 | 3 | 4 | 5)}
+                onClick={() => onGrade(q as ReviewRating)}
                 className={toneClass}
               >
                 {label}
@@ -60,7 +58,7 @@ export function ReviewMode({
             ))}
           </div>
           <p className={sideUi.reviewHint}>
-            评级将影响下次复习间隔（SM-2 算法）
+            评分先保存在本机，连接 Folio 后按 FSRS-6 更新排期。
           </p>
         </>
       )}

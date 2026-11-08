@@ -47,14 +47,16 @@ const state: HighlightState = {
 
 const STYLE = `
 .${HIGHLIGHT_CLASS} {
-  background: linear-gradient(180deg, transparent 60%, rgba(96, 165, 250, 0.35) 60%);
-  border-bottom: 1px dashed rgba(96, 165, 250, 0.85);
+  color: inherit;
+  background: linear-gradient(180deg, transparent 66%, rgba(184, 95, 80, 0.22) 66%);
+  border-bottom: 1px solid rgba(184, 95, 80, 0.72);
   cursor: help;
   padding-bottom: 1px;
-  transition: background 120ms ease;
+  transition: background 140ms ease, border-color 140ms ease;
 }
 .${HIGHLIGHT_CLASS}:hover {
-  background: linear-gradient(180deg, transparent 30%, rgba(96, 165, 250, 0.6) 30%);
+  background: rgba(245, 232, 207, 0.72);
+  border-bottom-color: rgba(149, 72, 61, 0.92);
 }
 .__polyglot_vocab_tooltip__ {
   position: fixed;
@@ -62,14 +64,14 @@ const STYLE = `
   max-width: 320px;
   padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(15, 23, 42, 0.96);
-  color: #e2e8f0;
+  background: rgba(251, 250, 247, 0.98);
+  color: #24201e;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   font-size: 12.5px;
   line-height: 1.55;
   pointer-events: none;
-  border: 1px solid rgba(96, 165, 250, 0.35);
-  box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.5);
+  border: 1px solid #ded8cf;
+  box-shadow: 0 12px 34px -14px rgba(55, 42, 34, 0.42);
   white-space: pre-wrap;
   opacity: 0;
   transform: translateY(4px);
@@ -78,6 +80,12 @@ const STYLE = `
 .__polyglot_vocab_tooltip__.visible {
   opacity: 1;
   transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .${HIGHLIGHT_CLASS},
+  .__polyglot_vocab_tooltip__ {
+    transition-duration: 0.01ms;
+  }
 }
 `;
 

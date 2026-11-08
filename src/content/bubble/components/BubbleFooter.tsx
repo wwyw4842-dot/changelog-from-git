@@ -74,11 +74,12 @@ export function BubbleFooter(props: BubbleFooterProps) {
         )}
         {props.onOpenPanel && (
           <button
+            type="button"
             onClick={props.onOpenPanel}
-            className={UI.subtleToolBtn}
+            className={UI.panelOpenButton}
             title="打开侧边栏"
-            aria-label="打开侧边栏"
           >
+            <span>打开侧栏</span>
             <ArrowRightIcon />
           </button>
         )}

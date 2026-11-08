@@ -5,14 +5,32 @@ import {
   removeVocabulary,
   reviewVocabulary,
   updateVocabulary,
+  syncVocabularyWithFolio,
 } from "@shared/storage/vocabulary";
 import { bumpActivity, getDailyStats, getYearActivity } from "@shared/storage/activity";
 import { db } from "@shared/storage/db";
+import {
+  clearFolioPairing,
+  getFolioAuthToken,
+  getFolioPairingStatus,
+  saveFolioPairingCode,
+} from "@shared/storage/folio-pairing";
 import { getSettings } from "@shared/storage/settings";
 import { addReviewArticle, listReviewArticles, removeReviewArticle } from "@shared/storage/review-articles";
 import { generateVocabularyExamples } from "../vocab-examples";
 
 export function registerVocabularyHandlers(router: MessageRouter): void {
+  // Alarms survive service-worker suspension: push durable pending events and pull desktop updates when paired.
+  void chrome.alarms.create("folio-sync-retry", { periodInMinutes: 1 });
+  chrome.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name !== "folio-sync-retry") return;
+    const hasPending = (await db.syncOutbox.count()) > 0;
+    const hasPairing = Boolean(await getFolioAuthToken());
+    if (hasPending || hasPairing) {
+      await syncVocabularyWithFolio();
+    }
+  });
+  chrome.runtime.onStartup.addListener(() => { void syncVocabularyWithFolio(); });
   router.on("vocabulary:add", async (payload) => {
     const entry = await addVocabulary({
       word: payload.word,
@@ -21,21 +39,40 @@ export function registerVocabularyHandlers(router: MessageRouter): void {
       phonetic: payload.phonetic,
       tags: payload.tags,
       examples: payload.examples,
+      url: payload.url,
+      pageTitle: payload.pageTitle,
+      domain: payload.domain,
     });
     void bumpActivity("vocabAdded");
+    void syncVocabularyWithFolio();
     if (entry.id && !entry.examples?.length) {
       void enrichVocabularyExamplesAfterAdd(entry.id);
     }
     return entry;
   });
+  router.on("vocabulary:sync", async () => {
+    return syncVocabularyWithFolio();
+  });
+  router.on("vocabulary:pairing:status", async () => getFolioPairingStatus());
+  router.on("vocabulary:pairing:connect", async ({ pairingCode }) => {
+    const status = await saveFolioPairingCode(pairingCode);
+    const sync = await syncVocabularyWithFolio();
+    return { status: await getFolioPairingStatus().catch(() => status), sync };
+  });
+  router.on("vocabulary:pairing:disconnect", async () => clearFolioPairing());
   router.on("vocabulary:list", async (payload) => listVocabulary(payload));
-  router.on("vocabulary:review", async ({ id, quality }) => {
-    const entry = await reviewVocabulary(id, quality);
+  router.on("vocabulary:review", async ({ id, rating }) => {
+    const entry = await reviewVocabulary(id, rating);
     void bumpActivity("reviews");
+    void syncVocabularyWithFolio();
     return entry;
   });
   router.on("vocabulary:remove", async ({ id }) => removeVocabulary(id));
-  router.on("vocabulary:update", async ({ id, patch }) => updateVocabulary(id, patch));
+  router.on("vocabulary:update", async ({ id, patch }) => {
+    const entry = await updateVocabulary(id, patch);
+    void syncVocabularyWithFolio();
+    return entry;
+  });
   router.on("vocabulary:examples:regen", async ({ id }) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 25_000);

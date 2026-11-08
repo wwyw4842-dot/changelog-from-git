@@ -8,8 +8,7 @@ export const UI = {
   rowInline: "flex items-center gap-2",
   rowInlineTight: "flex items-center gap-1",
   brandDot: "poly-brand-dot",
-  text70:
-    "poly-serif text-[11px] font-semibold tracking-[0.18em] text-[#9a4a3d]",
+  text70: "poly-serif text-[11px] font-semibold tracking-[0.18em] text-[#9a4a3d]",
   text50: "text-[10px] font-medium tracking-[0.12em] text-[#867566]",
   body: "poly-scroll flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-3",
   detailsPanel:
@@ -19,8 +18,7 @@ export const UI = {
   tagsWrap: "flex flex-wrap gap-1",
   altTag:
     "rounded-full border border-[rgba(184,95,80,0.30)] bg-[#fbf0eb] px-2 py-0.5 text-[11px] font-medium text-[#9a4a3d] transition hover:bg-[#f4dcd1]",
-  explanationText:
-    "poly-prose m-0 text-[13.5px] !leading-[1.75] text-[#43382e]",
+  explanationText: "poly-prose m-0 text-[13.5px] !leading-[1.75] text-[#43382e]",
   listTight: "m-0 list-none space-y-0.5 p-0",
   posItem: "flex gap-2 text-[12px]",
   posLabel: "poly-serif font-semibold text-[#9a4a3d]",
@@ -28,15 +26,15 @@ export const UI = {
   exampleTgt: "text-[#867566]",
   footer:
     "flex flex-wrap items-center gap-1 border-t border-[rgba(120,90,80,0.12)] bg-[rgba(244,236,230,0.4)] px-3 py-2",
-  whitelistWrap:
-    "mr-1 flex select-none items-center gap-1.5 text-[11px] text-[#867566]",
+  whitelistWrap: "mr-1 flex select-none items-center gap-1.5 text-[11px] text-[#867566]",
   nowrap: "whitespace-nowrap",
   rightTools: "ml-auto flex items-center gap-1",
   subtleToolBtn:
     "rounded-md px-2 py-1 text-[11px] text-[#867566] transition hover:bg-[rgba(244,236,230,0.7)] hover:text-[#43382e] active:scale-95",
+  panelOpenButton:
+    "poly-ripple inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-[#9a4a3d] px-3 py-1.5 text-[12px] font-semibold text-white shadow-[0_5px_14px_-5px_rgba(154,74,61,0.75)] transition hover:bg-[#7a392f] active:scale-95 dark:bg-[#e1a795] dark:text-[#1a1612] dark:hover:bg-[#efbfaf]",
   valueRow: "flex gap-2 text-[13px]",
-  valueLabel:
-    "min-w-[40px] text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a89886]",
+  valueLabel: "min-w-[40px] text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a89886]",
   valueBase: "whitespace-pre-wrap break-words",
   valueEmphasized:
     "poly-serif whitespace-pre-wrap break-words font-semibold text-[15px] text-[#1a1612]",

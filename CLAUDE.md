@@ -22,7 +22,8 @@ Message flow: **content script / sidepanel / popup** → typed message bus (`@sh
 
 - `src/providers/` — translation engines behind one `TranslationProvider` interface, looked up via `registry.ts` (`translateViaChain` = primary + fallback chain + cache).
   - Free REST engines (google/bing/deepl/volcano) are built with `createRestProvider` (`rest-provider.ts`); language-code differences live in `lang-mapper.ts` only.
-  - Streaming LLM engines (openai/claude/gemini/deepseek) are built with `createSSEProvider` (`llm/sse-provider.ts`); SSE/JSONL chunk parsing is shared via `llm/delta-parsers.ts`.
+  - Streaming LLM engines (openai/claude/gemini/deepseek/mimo) are built with `createSSEProvider` (`llm/sse-provider.ts`); SSE/JSONL chunk parsing is shared via `llm/delta-parsers.ts`.
+  - DeepSeek defaults: `deepseek` → `deepseek-v4-flash`, `deepseek-reason` → `deepseek-v4-pro`. MiMo defaults: `mimo` → `mimo-v2.5`, `mimo-pro` → `mimo-v2.5-pro`. Alias engines share key/base only (`llm-credentials.ts`).
   - Freeform chat (`llm/chat.ts`) is an adapter table over the same parsers — add a new LLM by adding one adapter entry, not a new stream loop.
 - `src/background/` — service worker. `handlers/` register on the MessageRouter; `translate-helper.ts` `runTranslation()` is the single enrich→chain→history pipeline; `handlers/stream.ts` owns the `polyglot-stream` Port.
 - `src/shared/stream-protocol.ts` — the discriminated-union message types for that Port, used by **both** sides. Change the protocol here, never inline.

@@ -1,3 +1,4 @@
+import { migrateLegacyLlmCredentials } from "../llm-credentials";
 import { DEFAULT_SETTINGS, type ProviderCredentials, type Settings } from "../types";
 import { decryptString, encryptString, isEncrypted } from "./crypto";
 
@@ -15,7 +16,9 @@ export async function getSettings(): Promise<Settings> {
   const base = fromSync
     ? { ...DEFAULT_SETTINGS, ...fromSync }
     : { ...DEFAULT_SETTINGS, ...(fromLocal || {}) };
-  const credentials = await decryptCredentials(storedCredentials || base.credentials || {});
+  const credentials = migrateLegacyLlmCredentials(
+    await decryptCredentials(storedCredentials || base.credentials || {})
+  );
   return { ...base, credentials } satisfies Settings;
 }
 
@@ -69,10 +72,17 @@ async function decryptCredentials(source: ProviderCredentials): Promise<Provider
 
 export async function initializeSettings(): Promise<Settings> {
   const current = await getSettings();
-  if (!current.migratedTo) {
-    return migrateLegacy(current);
-  }
-  return current;
+  const afterLegacy = current.migratedTo ? current : await migrateLegacy(current);
+  return migrateDeprecatedLlmModels(afterLegacy);
+}
+
+async function migrateDeprecatedLlmModels(current: Settings): Promise<Settings> {
+  const local = await chrome.storage.local.get(CREDENTIALS_KEY);
+  const stored = (local[CREDENTIALS_KEY] as ProviderCredentials | undefined) || {};
+  const decrypted = await decryptCredentials(stored);
+  const nextCredentials = migrateLegacyLlmCredentials(decrypted);
+  if (nextCredentials === decrypted) return current;
+  return updateSettings({ credentials: nextCredentials });
 }
 
 async function migrateLegacy(current: Settings): Promise<Settings> {

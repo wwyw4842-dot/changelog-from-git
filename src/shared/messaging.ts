@@ -8,6 +8,9 @@ import type {
   TranslationResult,
   ReviewArticleEntry,
   VocabularyEntry,
+  VocabularySyncResult,
+  FolioPairingStatus,
+  ReviewRating,
 } from "./types";
 import { mapChromeRuntimeError } from "./chrome-runtime-error";
 import { MessageEnvelopeSchema, MessagePayloadSchemas, formatValidationError } from "./validation";
@@ -20,16 +23,28 @@ export type ChannelMap = {
     req: TranslationRequest & { openSidePanel?: boolean };
     resp: TranslationResult;
   };
+  "sidepanel:open": { req: void; resp: { opened: true } };
   "history:list": { req: { limit?: number; query?: string }; resp: HistoryEntry[] };
   "history:clear": { req: void; resp: void };
-  "vocabulary:add": { req: Omit<VocabularyEntry, "id" | "addedAt" | "nextReviewAt" | "easeFactor" | "interval" | "reps" | "lapses"> & Partial<VocabularyEntry>; resp: VocabularyEntry };
+  "vocabulary:add": {
+    req: Pick<VocabularyEntry, "word" | "translation" | "context" | "phonetic" | "tags" | "examples" | "url" | "pageTitle" | "domain">;
+    resp: VocabularyEntry;
+  };
   "vocabulary:list": { req: { due?: boolean; limit?: number }; resp: VocabularyEntry[] };
-  "vocabulary:review": { req: { id: number; quality: 0 | 1 | 2 | 3 | 4 | 5 }; resp: VocabularyEntry };
+  "vocabulary:review": {
+    req: { id: number; rating: ReviewRating };
+    resp: VocabularyEntry;
+  };
   "vocabulary:remove": { req: { id: number }; resp: void };
   "vocabulary:update": {
     req: {
       id: number;
-      patch: Partial<Pick<VocabularyEntry, "addedAt" | "context" | "tags" | "phonetic" | "translation" | "word" | "examples">>;
+      patch: Partial<
+        Pick<
+          VocabularyEntry,
+          "context" | "tags" | "phonetic" | "translation" | "word" | "examples"
+        >
+      >;
     };
     resp: VocabularyEntry;
   };
@@ -48,6 +63,13 @@ export type ChannelMap = {
   "stats:year": { req: void; resp: ActivityDay[] };
   "vocabulary:words": { req: void; resp: string[] };
   "ocr:recognize": { req: { src: string; lang?: string }; resp: { text: string } };
+  "vocabulary:sync": { req: void; resp: VocabularySyncResult };
+  "vocabulary:pairing:status": { req: void; resp: FolioPairingStatus };
+  "vocabulary:pairing:connect": {
+    req: { pairingCode: string };
+    resp: { status: FolioPairingStatus; sync: VocabularySyncResult };
+  };
+  "vocabulary:pairing:disconnect": { req: void; resp: FolioPairingStatus };
 };
 
 export type Channel = keyof ChannelMap;
@@ -59,12 +81,19 @@ export async function send<K extends Channel>(
   const envelope = { type, payload };
   let response: MessageResponse<ChannelMap[K]["resp"]>;
   try {
-    response = (await chrome.runtime.sendMessage(envelope)) as MessageResponse<ChannelMap[K]["resp"]>;
+    const chromeApi = (globalThis as typeof globalThis & { chrome?: typeof chrome }).chrome;
+    const runtime = chromeApi?.runtime;
+    if (!runtime?.id || typeof runtime.sendMessage !== "function") {
+      throw new Error("Extension context invalidated.");
+    }
+    response = (await runtime.sendMessage(envelope)) as MessageResponse<ChannelMap[K]["resp"]>;
   } catch (error) {
     throw mapChromeRuntimeError(error);
   }
   if (!response) {
-    throw mapChromeRuntimeError(new Error("Could not establish connection. Receiving end does not exist."));
+    throw mapChromeRuntimeError(
+      new Error("Could not establish connection. Receiving end does not exist.")
+    );
   }
   if (!response.ok) {
     throw mapChromeRuntimeError(new Error(response.error || "Request failed"));
@@ -77,7 +106,10 @@ export type ChannelHandler<K extends Channel> = (
   sender: chrome.runtime.MessageSender
 ) => Promise<ChannelMap[K]["resp"]> | ChannelMap[K]["resp"];
 
-type AnyHandler = (payload: unknown, sender: chrome.runtime.MessageSender) => Promise<unknown> | unknown;
+type AnyHandler = (
+  payload: unknown,
+  sender: chrome.runtime.MessageSender
+) => Promise<unknown> | unknown;
 
 export class MessageRouter {
   private handlers = new Map<Channel, AnyHandler>();

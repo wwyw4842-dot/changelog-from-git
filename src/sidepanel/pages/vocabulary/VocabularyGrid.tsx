@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { VocabularyEntry } from "@shared/types";
 import { sideUi } from "../ui";
 import { ArticleComposer } from "./ArticleComposer";
-import { dueColor, dueLabel, toDateInput, fromDateInput, type ComposeState } from "./utils";
+import { dueColor, dueLabel, type ComposeState } from "./utils";
 
 // 按日期分组的词汇列表视图：分组标题 + 生成复习文章入口 + 可展开/编辑/删除的单词条目
 export function VocabularyGrid({
@@ -99,7 +99,6 @@ function VocabCard({
   onUpdate: (patch: Partial<VocabularyEntry>) => void;
   onRegenExamples: (id: number) => Promise<void>;
 }) {
-  const [editingDate, setEditingDate] = useState(false);
   const [editingFields, setEditingFields] = useState(false);
   const [regenBusy, setRegenBusy] = useState(false);
 
@@ -135,51 +134,31 @@ function VocabCard({
           onClick={(e) => e.stopPropagation()}
         >
           <DetailRow label="首次添加">
-            {editingDate ? (
-              <input
-                type="date"
-                defaultValue={toDateInput(item.addedAt)}
-                autoFocus
-                onBlur={(e) => {
-                  const nextTs = fromDateInput(e.target.value) ?? item.addedAt;
-                  setEditingDate(false);
-                  if (nextTs !== item.addedAt) onUpdate({ addedAt: nextTs });
-                }}
-                className={sideUi.inputInline}
-              />
-            ) : (
-              <button
-                className={sideUi.inlineEditTrigger}
-                onClick={() => setEditingDate(true)}
-                title="点击修改日期"
-              >
-                {new Date(item.addedAt).toLocaleString()}
-              </button>
-            )}
+            <span>{new Date(item.addedAt).toLocaleString()}</span>
           </DetailRow>
           <DetailRow label="下次复习">
             <span>
-              {new Date(item.nextReviewAt).toLocaleString()}{" "}
+              {item.pendingReview || !item.review ? "等待同步" : new Date(item.review.dueAt).toLocaleString()}{" "}
               <span className={sideUi.subtleParen}>({dueLabel(item)})</span>
             </span>
           </DetailRow>
           <DetailRow label="复习次数">
             <span>
-              {item.reps} 次（失败 {item.lapses} 次）
+              {item.review ? `${item.review.reviewCount} 次（遗忘 ${item.review.lapseCount} 次）` : "尚未取得 Folio 复习记录"}
             </span>
           </DetailRow>
           <DetailRow label="熟练度">
-            <span>{item.easeFactor.toFixed(2)} · 间隔 {item.interval} 天</span>
+            <span>{item.review ? `${item.review.masteryState} · FSRS-6` : "等待 Folio 排期"}</span>
           </DetailRow>
+
+          {item.pendingReview && <p role="status" className={sideUi.bodyMuted}>复习已保存，待同步排期。</p>}
+          {item.legacyReview && <p className={sideUi.bodyMuted}>旧版复习快照已保留，不作为当前排期。</p>}
+          {item.url && <DetailRow label="来源"><a href={item.url} target="_blank" rel="noreferrer">{item.pageTitle || item.domain || item.url}</a></DetailRow>}
 
           {editingFields ? (
             <div className={sideUi.detailsStack}>
               <DetailRow label="单词">
-                <input
-                  defaultValue={item.word}
-                  onBlur={(e) => onUpdate({ word: e.target.value })}
-                  className={sideUi.inputInlineFull}
-                />
+                <span>{item.word}（更换单词请从本机移除后重新添加）</span>
               </DetailRow>
               <DetailRow label="释义">
                 <textarea
@@ -280,9 +259,10 @@ function VocabCard({
             </button>
             <button
               onClick={onRemove}
+              title="仅在 Foliole 隐藏，不删除 Folio 的学习记录；重新添加可恢复。"
               className={sideUi.dangerButtonMini}
             >
-              删除
+              从本机移除
             </button>
           </div>
         </div>

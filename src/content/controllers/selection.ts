@@ -97,11 +97,14 @@ export function createSelectionController({
     const position = getSelectionPosition() || { x: 16, y: 16 };
     const from = detectLangHint(text);
     const to = suggestTargetLang(text, settings.targetLang);
+    const context = captureSelectionContext(text);
+    const source = { url: window.location.href, pageTitle: document.title, domain: window.location.hostname };
     lastRequest = { text, from, to, position, mode: "quick" };
     showCard({
       originalText: text,
       translatedText: "",
       provider: settings.primaryProvider,
+      context,
       state: "loading",
       position,
     });
@@ -110,7 +113,9 @@ export function createSelectionController({
         text,
         from,
         to,
+        context,
         mode: "quick",
+        ...source,
         openSidePanel: options.openSidePanel,
       });
       showCard({
@@ -118,6 +123,7 @@ export function createSelectionController({
         translatedText: result.translatedText,
         phonetic: result.phonetic,
         provider: result.provider,
+        context,
         fromCache: result.fromCache,
         isError: result.isError,
         state: "done",
@@ -136,6 +142,7 @@ export function createSelectionController({
         originalText: text,
         translatedText: "",
         provider: settings.primaryProvider,
+        context,
         isError: true,
         errorMessage: err.message,
         state: "error",
@@ -151,12 +158,15 @@ export function createSelectionController({
     const position = getSelectionPosition() || { x: 16, y: 16 };
     const from = detectLangHint(text);
     const to = suggestTargetLang(text, settings.targetLang);
+    const context = captureSelectionContext(text);
+    const source = { url: window.location.href, pageTitle: document.title, domain: window.location.hostname };
     lastRequest = { text, from, to, position, mode: "deep" };
 
     showCard({
       originalText: text,
       translatedText: "",
       provider: settings.deepProvider,
+      context,
       state: "streaming",
       position,
     });
@@ -178,6 +188,7 @@ export function createSelectionController({
         originalText: text,
         translatedText: "",
         provider: settings.deepProvider,
+        context,
         isError: true,
         errorMessage: err.message,
         state: "error",
@@ -204,6 +215,7 @@ export function createSelectionController({
           partOfSpeech: result.partOfSpeech,
           alternatives: result.alternatives,
           provider: result.provider,
+          context,
           state: "done",
           position,
         });
@@ -226,7 +238,7 @@ export function createSelectionController({
       }
     });
     try {
-      const payload: TranslationRequest = { text, from, to, mode: "deep" };
+      const payload: TranslationRequest = { text, from, to, context, mode: "deep", ...source };
       port.postMessage({ type: "translate:stream", payload });
     } catch (error) {
       streamFinished = true;
@@ -235,6 +247,7 @@ export function createSelectionController({
         originalText: text,
         translatedText: "",
         provider: settings.deepProvider,
+        context,
         isError: true,
         errorMessage: err.message,
         state: "error",
@@ -249,6 +262,7 @@ export function createSelectionController({
     const from = detectLangHint(text);
     const to = suggestTargetLang(text, settings.targetLang);
     const context = captureSelectionContext(text);
+    const source = { url: window.location.href, pageTitle: document.title, domain: window.location.hostname };
     try {
       const result = await send("translate:request", { text, from, to, mode: "quick" });
       await send("vocabulary:add", {
@@ -256,6 +270,7 @@ export function createSelectionController({
         translation: result.translatedText,
         phonetic: result.phonetic,
         context,
+        ...source,
       });
       if (settings.vocabHighlightEnabled !== false) {
         void refreshVocabHighlight();

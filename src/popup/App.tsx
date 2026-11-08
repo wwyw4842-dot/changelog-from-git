@@ -15,20 +15,29 @@ const COMMAND_ORDER = ["translate-selection", "translate-deep", "translate-page"
 const TOAST_MS_SUCCESS = 1400;
 const TOAST_MS_ERROR = 1800;
 const SITE_STATUS_MS = 2600;
+const SIDE_PANEL_TAB_STORAGE_KEY = "foliole-sidepanel-tab";
 
 type WhitelistMode = "domain" | "url";
+type SidePanelTab = "latest" | "vocab" | "history";
 
 const UI = {
-  shell: "relative min-w-[340px] space-y-3 p-4 text-ink-900 poly-stagger",
-  headerRow: "flex items-center justify-between",
-  title: "flex items-center gap-2.5 text-sm font-semibold",
-  brandMark:
-    "relative grid h-7 w-7 place-items-center rounded-full text-[12px] font-bold text-white shadow-coral bg-gradient-to-br from-brand-400 to-brand-600",
-  brandText: "flex flex-col leading-tight",
-  brandMain: "poly-serif poly-letter-reveal font-bold tracking-tight text-ink-900 text-[16px]",
-  brandSub: "text-[10px] font-medium uppercase tracking-[0.20em] text-brand-600/80",
-  optionsButton:
-    "rounded-md px-2 py-0.5 text-[11px] text-ink-500 transition hover:bg-cream-200 hover:text-ink-900 active:scale-95",
+  shell: "foliole-popup poly-stagger",
+  headerRow: "foliole-popup-header",
+  title: "foliole-popup-brand",
+  brandMark: "foliole-popup-brand-mark",
+  brandText: "foliole-popup-brand-copy",
+  brandMain: "foliole-popup-brand-name",
+  brandSub: "foliole-popup-brand-subtitle",
+  optionsButton: "foliole-popup-settings",
+  launchCard: "foliole-popup-launch",
+  launchEyebrow: "foliole-popup-launch-eyebrow",
+  launchTitle: "foliole-popup-launch-title",
+  launchHint: "foliole-popup-launch-hint",
+  launchButton: "foliole-popup-launch-button poly-ripple",
+  launchArrow: "foliole-popup-launch-arrow",
+  quickNav: "foliole-popup-quick-nav",
+  quickButton: "foliole-popup-quick-button",
+  panelError: "foliole-popup-panel-error",
   textarea:
     "poly-input-glow min-h-[84px] w-full rounded-xl border border-cream-300 bg-cream-50 p-2.5 text-sm text-ink-900 outline-none placeholder:text-ink-400 shadow-softer transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200/60",
   resultCard:
@@ -39,17 +48,14 @@ const UI = {
     "poly-serif min-h-[52px] whitespace-pre-wrap text-[15px] leading-relaxed text-ink-900",
   resultMetaRow: "mt-2 flex items-center justify-between text-[11px] text-ink-500",
   translateStatus: "mt-1 text-[11px] text-ink-500",
-  card:
-    "rounded-2xl border border-cream-300/80 bg-cream-100 px-3 py-2.5 shadow-softer transition hover:shadow-soft",
-  cardTitle:
-    "poly-serif mb-1.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-600",
+  card: "rounded-2xl border border-cream-300/80 bg-cream-100 px-3 py-2.5 shadow-softer transition hover:shadow-soft",
+  cardTitle: "poly-serif mb-1.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-600",
   cardHintMt: "mt-1.5 text-[10px] leading-snug text-ink-400",
   modeTabsWrap:
     "mb-2 inline-flex rounded-xl border border-cream-300 bg-cream-200/60 p-0.5 text-[11px] shadow-softer",
   modeTabActive:
     "rounded-lg px-2.5 py-1 transition bg-cream-50 text-brand-700 font-semibold shadow-softer ring-1 ring-inset ring-brand-200",
-  modeTabIdle:
-    "rounded-lg px-2.5 py-1 transition text-ink-500 hover:text-ink-900",
+  modeTabIdle: "rounded-lg px-2.5 py-1 transition text-ink-500 hover:text-ink-900",
   modeTabActiveDisabled:
     "rounded-lg px-2.5 py-1 transition bg-cream-50 text-brand-700 font-semibold shadow-softer ring-1 ring-inset ring-brand-200 cursor-not-allowed opacity-60",
   modeTabIdleDisabled:
@@ -80,13 +86,12 @@ const UI = {
   commandItem: "flex items-start justify-between gap-2",
   commandDesc: "min-w-0 flex-1 leading-snug",
   shortcutsLink: "font-mono text-ink-500",
-  footer: "flex items-center justify-between text-[11px]",
+  footer: "flex items-center justify-end text-[11px]",
   footerVersion:
     "rounded-full bg-cream-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-500",
   subtleButton:
     "rounded-lg border border-cream-300 bg-cream-100 px-2.5 py-1 text-[11px] text-ink-700 shadow-softer transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 active:scale-95",
-  kbd:
-    "shrink-0 rounded-md border border-cream-300 bg-cream-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink-700 shadow-softer",
+  kbd: "shrink-0 rounded-md border border-cream-300 bg-cream-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-ink-700 shadow-softer",
 } as const;
 
 export function PopupApp() {
@@ -97,7 +102,9 @@ export function PopupApp() {
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [translateStatus, setTranslateStatus] = useState<string>("");
   const [siteStatus, setSiteStatus] = useState<string>("");
-  const [commandRows, setCommandRows] = useState<Array<{ name: string; description: string; shortcut: string }>>([]);
+  const [commandRows, setCommandRows] = useState<
+    Array<{ name: string; description: string; shortcut: string }>
+  >([]);
   const [currentUrl, setCurrentUrl] = useState<string>("");
   const [currentHost, setCurrentHost] = useState<string>("");
   const [domainWhitelisted, setDomainWhitelisted] = useState(false);
@@ -105,8 +112,12 @@ export function PopupApp() {
   const [whitelistMode, setWhitelistMode] = useState<WhitelistMode>("domain");
   const [whitelistBusy, setWhitelistBusy] = useState(false);
   const [whitelistReady, setWhitelistReady] = useState(false);
-  const [retryWhitelistAction, setRetryWhitelistAction] = useState<(() => Promise<void>) | null>(null);
+  const [retryWhitelistAction, setRetryWhitelistAction] = useState<(() => Promise<void>) | null>(
+    null
+  );
   const [copyToast, setCopyToast] = useState("");
+  const [panelStatus, setPanelStatus] = useState("");
+  const [openingPanel, setOpeningPanel] = useState(false);
   const debounceRef = useRef<number | null>(null);
   const siteStatusTimerRef = useRef<number | null>(null);
   const copyToastTimerRef = useRef<number | null>(null);
@@ -125,7 +136,11 @@ export function PopupApp() {
           description: c.description?.trim() || c.name!,
           shortcut: (c.shortcut && c.shortcut.trim()) || COMMAND_DEFAULTS[c.name!] || "",
         }))
-        .sort((a, b) => COMMAND_ORDER.indexOf(a.name as (typeof COMMAND_ORDER)[number]) - COMMAND_ORDER.indexOf(b.name as (typeof COMMAND_ORDER)[number]));
+        .sort(
+          (a, b) =>
+            COMMAND_ORDER.indexOf(a.name as (typeof COMMAND_ORDER)[number]) -
+            COMMAND_ORDER.indexOf(b.name as (typeof COMMAND_ORDER)[number])
+        );
       setCommandRows(rows);
     });
   }, []);
@@ -206,6 +221,24 @@ export function PopupApp() {
     }
   };
 
+  const openSidePanel = async (target?: SidePanelTab): Promise<void> => {
+    if (openingPanel) return;
+    if (target) window.localStorage.setItem(SIDE_PANEL_TAB_STORAGE_KEY, target);
+    setOpeningPanel(true);
+    setPanelStatus("");
+    try {
+      if (!chrome.sidePanel?.open) throw new Error("当前 Chrome 版本不支持打开侧栏");
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (typeof tab?.id !== "number") throw new Error("未找到当前标签页");
+      await chrome.sidePanel.open({ tabId: tab.id });
+    } catch (error) {
+      console.warn("[foliole] side panel open failed", error);
+      setPanelStatus("未能打开侧栏，请刷新扩展后重试。");
+    } finally {
+      setOpeningPanel(false);
+    }
+  };
+
   const showSiteStatus = (message: string, allowRetry = false) => {
     setSiteStatus(message);
     if (siteStatusTimerRef.current) window.clearTimeout(siteStatusTimerRef.current);
@@ -219,9 +252,12 @@ export function PopupApp() {
     setWhitelistBusy(true);
     try {
       const settings = await send("settings:get");
-      const list = (settings.whitelist || []).map((item) => String(item || "").trim()).filter(Boolean);
+      const list = (settings.whitelist || [])
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
       const state = getWhitelistState(list, currentUrl, currentHost);
-      const modeEnabled = whitelistMode === "domain" ? state.domainWhitelisted : state.urlWhitelisted;
+      const modeEnabled =
+        whitelistMode === "domain" ? state.domainWhitelisted : state.urlWhitelisted;
       const shouldEnable = !modeEnabled;
       const targetEntry = whitelistMode === "domain" ? currentHost : currentUrl;
       const next = shouldEnable
@@ -229,7 +265,9 @@ export function PopupApp() {
           ? list
           : [...list, targetEntry]
         : list.filter((entry) => entry !== targetEntry);
-      const updated = await send("settings:update", { whitelist: next } satisfies Partial<Settings>);
+      const updated = await send("settings:update", {
+        whitelist: next,
+      } satisfies Partial<Settings>);
       const nextState = getWhitelistState(updated.whitelist || [], currentUrl, currentHost);
       setDomainWhitelisted(nextState.domainWhitelisted);
       setUrlWhitelisted(nextState.urlWhitelisted);
@@ -237,7 +275,10 @@ export function PopupApp() {
       showSiteStatus(shouldEnable ? `已加入白名单（${modeText}）` : `已移出白名单（${modeText}）`);
       setRetryWhitelistAction(null);
     } catch (error) {
-      showSiteStatus(`白名单更新失败：${error instanceof Error ? error.message : String(error)}`, true);
+      showSiteStatus(
+        `白名单更新失败：${error instanceof Error ? error.message : String(error)}`,
+        true
+      );
       setRetryWhitelistAction(() => toggleCurrentSiteWhitelist);
     } finally {
       setWhitelistBusy(false);
@@ -281,21 +322,65 @@ export function PopupApp() {
     <div className={UI.shell}>
       <div className={UI.headerRow}>
         <span className={UI.title}>
-          <span className={UI.brandMark} aria-hidden>
-            P
-          </span>
+          <img className={UI.brandMark} src="/public/icons/foliole-icon.svg" alt="" aria-hidden />
           <span className={UI.brandText}>
-            <span className={UI.brandMain}>Polyglot</span>
-            <span className={UI.brandSub}>快速翻译</span>
+            <span className={UI.brandMain}>Foliole</span>
+            <span className={UI.brandSub}>把一次查词，变成下一次记住</span>
           </span>
         </span>
-        <button
-          onClick={() => chrome.runtime.openOptionsPage()}
-          className={UI.optionsButton}
-        >
+        <button onClick={() => chrome.runtime.openOptionsPage()} className={UI.optionsButton}>
           设置
         </button>
       </div>
+      <section className={UI.launchCard} aria-labelledby="foliole-popup-launch-title">
+        <p className={UI.launchEyebrow}>学习侧栏</p>
+        <h1 id="foliole-popup-launch-title" className={UI.launchTitle}>
+          继续你的词汇积累
+        </h1>
+        <p className={UI.launchHint}>查词、收藏与复习记录，都在同一处。</p>
+        <button
+          type="button"
+          className={UI.launchButton}
+          disabled={openingPanel}
+          onClick={() => void openSidePanel()}
+        >
+          <span>{openingPanel ? "正在打开…" : "打开学习侧栏"}</span>
+          <span className={UI.launchArrow} aria-hidden>
+            →
+          </span>
+        </button>
+        <nav className={UI.quickNav} aria-label="快速打开侧栏页面">
+          <button
+            type="button"
+            className={UI.quickButton}
+            disabled={openingPanel}
+            onClick={() => void openSidePanel("latest")}
+          >
+            当前结果
+          </button>
+          <button
+            type="button"
+            className={UI.quickButton}
+            disabled={openingPanel}
+            onClick={() => void openSidePanel("vocab")}
+          >
+            生词本
+          </button>
+          <button
+            type="button"
+            className={UI.quickButton}
+            disabled={openingPanel}
+            onClick={() => void openSidePanel("history")}
+          >
+            最近记录
+          </button>
+        </nav>
+        {panelStatus ? (
+          <p className={UI.panelError} role="alert">
+            {panelStatus}
+          </p>
+        ) : null}
+      </section>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -303,15 +388,13 @@ export function PopupApp() {
         className={UI.textarea}
       />
       <div className={UI.resultCard}>
-        {copyToast ? (
-          <span className={UI.copyToast}>{copyToast}</span>
-        ) : null}
-        <p className={UI.resultText}>
-          {result?.translatedText || "等待输入..."}
-        </p>
+        {copyToast ? <span className={UI.copyToast}>{copyToast}</span> : null}
+        <p className={UI.resultText}>{result?.translatedText || "等待输入..."}</p>
         <div className={UI.resultMetaRow}>
           <span>
-            {result?.provider ? `引擎：${result.provider}${result.fromCache ? "（缓存）" : ""}` : ""}
+            {result?.provider
+              ? `引擎：${result.provider}${result.fromCache ? "（缓存）" : ""}`
+              : ""}
           </span>
           <button onClick={copyResult} className={UI.subtleButton}>
             复制结果
@@ -402,27 +485,23 @@ export function PopupApp() {
           </ul>
           <p className={UI.cardHintMt}>
             若显示「未绑定」或与记忆不一致，请到{" "}
-            <span className={UI.shortcutsLink}>chrome://extensions/shortcuts</span> 为 Polyglot 指定按键。
+            <span className={UI.shortcutsLink}>chrome://extensions/shortcuts</span> 为 Foliole
+            指定按键。
           </p>
         </div>
       ) : null}
       <div className={UI.footer}>
-        <button
-          className={UI.optionsButton}
-          onClick={async () => {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tab?.id) await chrome.sidePanel.open({ tabId: tab.id }).catch(() => undefined);
-          }}
-        >
-          打开侧边栏
-        </button>
-        <span className={UI.footerVersion}>v1.0</span>
+        <span className={UI.footerVersion}>v2.0</span>
       </div>
     </div>
   );
 }
 
-function getWhitelistState(whitelist: string[], href: string, host: string): {
+function getWhitelistState(
+  whitelist: string[],
+  href: string,
+  host: string
+): {
   domainWhitelisted: boolean;
   urlWhitelisted: boolean;
 } {

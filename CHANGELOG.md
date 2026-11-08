@@ -16,8 +16,9 @@
 ### 翻译与引擎
 
 - 多引擎：**Google、Bing、MyMemory、DeepL、Volcano**；LLM：**OpenAI、Claude、Gemini、Ollama**。
-- **DeepSeek**：`deepseek`（Chat）与 `deepseek-reason`（Reasoner）；OpenAI 兼容 `/chat/completions`；`streamChat` 支持两档。
-- **`deepseek-reason` 凭据默认合并自 `deepseek`**（`mergeLlmCredentials`），避免重复填 Key。
+- **DeepSeek**：`deepseek`（V4 Flash / `deepseek-v4-flash`）与 `deepseek-reason`（V4 Pro / `deepseek-v4-pro`）；已停用 `deepseek-chat` / `deepseek-reasoner`。启动时会把本地存着的旧模型名改写到 V4。
+- **小米 MiMo**：`mimo`（`mimo-v2.5`）与 `mimo-pro`（`mimo-v2.5-pro`）；OpenAI 兼容 `/chat/completions`；`mimo-pro` 凭据默认合并自 `mimo`。
+- **`deepseek-reason` / `mimo-pro` 凭据默认合并自主引擎**（`mergeLlmCredentials`），只复用 Key/Base，不继承主引擎的 model。
 - 设置项：**深度解读引擎**、**高级/推理（llmProProvider）**、**生词例句引擎（vocabExampleProvider）**；`llm:prompt` 默认走 `llmProProvider`。
 - **`provider:test`**：对流式 LLM 真实消费流直至有足够输出，避免「假通过」。
 - MyMemory 中文分块拼接等与早期 bug 相关修复保留在代码库中。

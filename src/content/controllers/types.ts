@@ -12,6 +12,7 @@ export interface ShowCardParams {
   examples?: Array<{ src: string; tgt: string }>;
   partOfSpeech?: Array<{ pos: string; definition: string }>;
   alternatives?: string[];
+  context?: string;
   state: "loading" | "streaming" | "done" | "error";
   position: { x: number; y: number };
 }

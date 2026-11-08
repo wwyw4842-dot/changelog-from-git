@@ -119,11 +119,9 @@ function BubbleCard(props: CardProps) {
       <header onMouseDown={startDrag} className={UI.header}>
         <div className={UI.rowInline}>
           <span className={UI.brandDot} />
-          <span className={UI.text70}>Polyglot</span>
+          <span className={UI.text70}>Foliole</span>
           {(state === "streaming" || fromCache) && (
-            <span className={UI.text50}>
-              · {state === "streaming" ? "流式中" : "缓存"}
-            </span>
+            <span className={UI.text50}>· {state === "streaming" ? "流式中" : "缓存"}</span>
           )}
         </div>
         <div className={UI.rowInlineTight}>

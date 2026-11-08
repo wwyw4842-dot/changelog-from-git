@@ -10,6 +10,23 @@ interface ChainOptions {
   onChunk?: (chunk: Partial<TranslationResult>) => void;
 }
 
+export const FINAL_LOCAL_PROVIDER_ID = "ollama";
+
+/** 用户配置在线备用顺序；本地 Ollama 始终作为翻译链最后一道保障。 */
+export function withFinalLocalFallback(primary: string, fallback: string[]): string[] {
+  const onlineFallback = Array.from(
+    new Set(
+      fallback.filter(
+        (providerId) =>
+          providerId && providerId !== primary && providerId !== FINAL_LOCAL_PROVIDER_ID
+      )
+    )
+  );
+  return primary === FINAL_LOCAL_PROVIDER_ID
+    ? onlineFallback
+    : [...onlineFallback, FINAL_LOCAL_PROVIDER_ID];
+}
+
 /**
  * translation.ts 与 stream.ts 共用的翻译执行管线：
  * 用 settings 补全请求里缺省的 IELTS 字段 → 走 provider 回落链 → 写历史。
@@ -24,13 +41,20 @@ export async function runTranslation(
     ieltsMode: req.ieltsMode ?? settings.ieltsMode,
     ieltsTarget: req.ieltsTarget ?? settings.ieltsTarget,
   };
+  const primary = req.providerId || options.primaryOverride || settings.primaryProvider;
   const result = await translateViaChain(enriched, {
-    primary: req.providerId || options.primaryOverride || settings.primaryProvider,
-    fallback: settings.fallbackChain,
+    primary,
+    fallback: withFinalLocalFallback(primary, settings.fallbackChain),
     credentialsFor: (id) => mergeLlmCredentials(id, settings.credentials),
     signal: options.signal,
     onChunk: options.onChunk,
   });
-  await addHistory({ ...result, from: req.from, to: req.to, ts: Date.now() });
+  await addHistory({
+    ...result,
+    from: req.from,
+    to: req.to,
+    context: req.context,
+    ts: Date.now(),
+  });
   return result;
 }

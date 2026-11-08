@@ -7,6 +7,9 @@ import {
   parseGeminiDelta,
   parseOllamaDelta,
 } from "./delta-parsers";
+import { DEEPSEEK_DEFAULT_BASE, DEEPSEEK_FLASH_MODEL, DEEPSEEK_PRO_MODEL } from "./deepseek";
+import { MIMO_DEFAULT_BASE, MIMO_FLASH_MODEL, MIMO_PRO_MODEL } from "./mimo";
+import { DEFAULT_OLLAMA_BASE, DEFAULT_OLLAMA_MODEL } from "./ollama";
 import { readSSE, readJSONLines } from "./sse";
 
 export type { ChatMessage } from "@shared/stream-protocol";
@@ -17,7 +20,9 @@ export type LLMProviderId =
   | "gemini"
   | "ollama"
   | "deepseek"
-  | "deepseek-reason";
+  | "deepseek-reason"
+  | "mimo"
+  | "mimo-pro";
 
 interface ChatRuntime {
   apiKey: string;
@@ -45,7 +50,11 @@ interface ChatAdapter {
   isAuthFailure(status: number): boolean;
 }
 
-const openAICompatible = (label: string, defaultBase: string, defaultModel: string): ChatAdapter => ({
+const openAICompatible = (
+  label: string,
+  defaultBase: string,
+  defaultModel: string
+): ChatAdapter => ({
   label,
   needsKey: true,
   defaultBase,
@@ -63,8 +72,10 @@ const openAICompatible = (label: string, defaultBase: string, defaultModel: stri
 
 const ADAPTERS: Record<LLMProviderId, ChatAdapter> = {
   openai: openAICompatible("OpenAI", "https://api.openai.com/v1", "gpt-4o-mini"),
-  deepseek: openAICompatible("DeepSeek", "https://api.deepseek.com/v1", "deepseek-chat"),
-  "deepseek-reason": openAICompatible("DeepSeek", "https://api.deepseek.com/v1", "deepseek-reasoner"),
+  deepseek: openAICompatible("DeepSeek", DEEPSEEK_DEFAULT_BASE, DEEPSEEK_FLASH_MODEL),
+  "deepseek-reason": openAICompatible("DeepSeek", DEEPSEEK_DEFAULT_BASE, DEEPSEEK_PRO_MODEL),
+  mimo: openAICompatible("MiMo", MIMO_DEFAULT_BASE, MIMO_FLASH_MODEL),
+  "mimo-pro": openAICompatible("MiMo", MIMO_DEFAULT_BASE, MIMO_PRO_MODEL),
   claude: {
     label: "Claude",
     needsKey: true,
@@ -116,11 +127,17 @@ const ADAPTERS: Record<LLMProviderId, ChatAdapter> = {
   ollama: {
     label: "Ollama",
     needsKey: false,
-    defaultBase: "http://localhost:11434",
-    defaultModel: "qwen2.5:7b",
+    defaultBase: DEFAULT_OLLAMA_BASE,
+    defaultModel: DEFAULT_OLLAMA_MODEL,
     buildEndpoint: ({ base }) => `${base}/api/chat`,
     buildHeaders: () => ({ "Content-Type": "application/json" }),
-    buildBody: ({ model }, messages) => ({ model, stream: true, messages }),
+    buildBody: ({ model }, messages) => ({
+      model,
+      stream: true,
+      keep_alive: "30m",
+      options: { temperature: 0.2 },
+      messages,
+    }),
     protocol: "jsonl",
     parseDelta: (line) => parseOllamaDelta(line).text,
     isAuthFailure: () => false,

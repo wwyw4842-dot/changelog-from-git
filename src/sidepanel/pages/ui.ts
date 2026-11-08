@@ -144,7 +144,7 @@ export const sideUi = {
   reviewAnswer: "mt-3 text-base text-ink-900",
   reviewContext: "mt-2 text-xs italic text-ink-500",
   reviewExamplesList: "mt-3 space-y-2 text-xs text-ink-700",
-  reviewGradesGrid: "mt-4 grid grid-cols-6 gap-1.5 text-xs",
+  reviewGradesGrid: "mt-4 grid grid-cols-2 gap-1.5 text-xs",
   reviewHint:
     "mt-3 text-[10px] uppercase tracking-[0.14em] text-ink-400",
 
