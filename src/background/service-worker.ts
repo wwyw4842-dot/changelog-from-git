@@ -16,7 +16,28 @@ translationCache.hydrate().catch(() => undefined);
 chrome.runtime.onInstalled.addListener(async () => {
   await initializeSettings();
   await installContextMenus();
+  await reinjectOpenTabs();
 });
+
+async function reinjectOpenTabs(): Promise<void> {
+  try {
+    const scripts = chrome.runtime.getManifest?.()?.content_scripts?.[0]?.js;
+    if (!scripts?.length || !chrome.tabs?.query || !chrome.scripting?.executeScript) return;
+    const tabs = await chrome.tabs.query({});
+    await Promise.allSettled(
+      tabs
+        .filter((tab): tab is chrome.tabs.Tab & { id: number } => typeof tab.id === "number")
+        .map((tab) =>
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: scripts,
+          })
+        )
+    );
+  } catch (error) {
+    console.warn("[polyglot] reinject open tabs failed", error);
+  }
+}
 
 chrome.runtime.onStartup.addListener(async () => {
   await installContextMenus();

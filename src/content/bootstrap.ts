@@ -1,7 +1,7 @@
 /// <reference types="chrome" />
 import { send } from "@shared/messaging";
 import { debounce } from "@shared/utils";
-import type { Settings } from "@shared/types";
+import { DEFAULT_SETTINGS, type Settings } from "@shared/types";
 import { disableImmersive, enableImmersive, isImmersiveActive } from "./immersive/controller";
 import { enablePdfMode } from "./pdf/pdf-hook";
 import { isPdfPage } from "./pdf/pdf-detector";
@@ -17,16 +17,18 @@ import { createShortcutsController } from "./controllers/shortcuts";
 
 const STATE_KEY = "__polyglot_injected__";
 interface WindowWithFlag extends Window {
-  [STATE_KEY]?: boolean;
+  [STATE_KEY]?: boolean | (() => void);
 }
 declare const window: WindowWithFlag;
 
-if (window[STATE_KEY]) {
-  console.debug("[polyglot] already injected");
-} else {
-  window[STATE_KEY] = true;
-  void bootstrap();
+if (typeof window[STATE_KEY] === "function") {
+  try {
+    window[STATE_KEY]();
+  } catch {
+    // ignore stale cleanup error
+  }
 }
+void bootstrap();
 
 let settings: Settings | null = null;
 
@@ -35,7 +37,7 @@ async function bootstrap(): Promise<void> {
     settings = await send("settings:get");
   } catch (error) {
     console.warn("[polyglot] get settings failed", error);
-    return;
+    settings = DEFAULT_SETTINGS;
   }
   if (isWhitelisted(settings.whitelist || [])) return;
 
@@ -68,8 +70,9 @@ async function bootstrap(): Promise<void> {
   document.addEventListener("mouseup", runCheck);
   document.addEventListener("selectionchange", runCheck);
   document.addEventListener("mousedown", bubbleController.handleGlobalMouseDown, true);
+  runCheck();
 
-  createShortcutsController({
+  const detachShortcuts = createShortcutsController({
     getSettings,
     setSettings,
     host: bubbleController.host,
@@ -83,7 +86,10 @@ async function bootstrap(): Promise<void> {
     showCard: bubbleController.showCard,
   }).attach();
 
-  chrome.storage.onChanged.addListener((changes, area) => {
+  const onStorageChanged = (
+    changes: { [key: string]: chrome.storage.StorageChange },
+    area: string
+  ) => {
     if ((area !== "sync" && area !== "local") || !changes.settings) return;
     const prev = settings;
     settings = { ...(settings as Settings), ...(changes.settings.newValue as Settings) };
@@ -106,7 +112,21 @@ async function bootstrap(): Promise<void> {
     if (settings.theme) {
       bubbleController.host.setTheme(settings.theme);
     }
-  });
+  };
+
+  chrome.storage.onChanged.addListener(onStorageChanged);
+
+  window[STATE_KEY] = () => {
+    document.removeEventListener("mouseup", runCheck);
+    document.removeEventListener("selectionchange", runCheck);
+    document.removeEventListener("mousedown", bubbleController.handleGlobalMouseDown, true);
+    detachShortcuts();
+    try {
+      chrome.storage.onChanged.removeListener(onStorageChanged);
+    } catch {
+      // ignore invalidated context
+    }
+  };
 }
 
 function installFeatureControllers(currentSettings: Settings): void {

@@ -16,6 +16,7 @@ export interface BubbleHandle {
 }
 
 export function createBubbleHost(onHide?: () => void): BubbleHandle {
+  document.getElementById("__polyglot_host__")?.remove();
   const hostElement = document.createElement("div");
   hostElement.id = "__polyglot_host__";
   hostElement.style.cssText =
@@ -74,6 +75,7 @@ export function createBubbleHost(onHide?: () => void): BubbleHandle {
     },
     showTrigger(position, label, onClick) {
       state = { ...state, trigger: { position, label, onClick } };
+      render();
     },
     hideTrigger() {
       state = { ...state, trigger: null };

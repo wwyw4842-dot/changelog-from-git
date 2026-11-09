@@ -4,7 +4,7 @@ import type { BubbleHandle } from "../bubble/BubbleHost";
 import type { SettingsAccessor, ShowCardParams } from "./types";
 
 export interface ShortcutsController {
-  attach: () => void;
+  attach: () => () => void;
 }
 
 export function createShortcutsController({
@@ -31,32 +31,27 @@ export function createShortcutsController({
 }): ShortcutsController {
   let lastContextImageUrl: string | null = null;
 
-  function attach(): void {
-    document.addEventListener(
-      "contextmenu",
-      (event) => {
-        const target = event.target as HTMLElement | null;
-        if (!target) return;
-        if (target instanceof HTMLImageElement) {
-          lastContextImageUrl = target.currentSrc || target.src;
-        } else {
-          lastContextImageUrl = null;
-        }
-      },
-      true
-    );
-    document.addEventListener("keydown", (e) => {
+  function attach(): () => void {
+    const onContextMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (target instanceof HTMLImageElement) {
+        lastContextImageUrl = target.currentSrc || target.src;
+      } else {
+        lastContextImageUrl = null;
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Alt") setAltKeyDown(true);
       if (e.key === "Escape" && host.isVisible()) {
         cancelDeep();
         host.hide();
       }
-    });
-    document.addEventListener("keyup", (e) => {
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === "Alt") setAltKeyDown(false);
-    });
-
-    chrome.runtime.onMessage.addListener((message) => {
+    };
+    const onRuntimeMessage = (message: unknown) => {
       const envelope = message as { type?: string; payload?: { text?: string; enable?: boolean } };
       if (!envelope?.type) return;
       if (
@@ -84,7 +79,23 @@ export function createShortcutsController({
       } else if (envelope.type === "context:ocrImage") {
         if (lastContextImageUrl) void runOcr(lastContextImageUrl);
       }
-    });
+    };
+
+    document.addEventListener("contextmenu", onContextMenu, true);
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
+    chrome.runtime.onMessage.addListener(onRuntimeMessage);
+
+    return () => {
+      document.removeEventListener("contextmenu", onContextMenu, true);
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keyup", onKeyUp);
+      try {
+        chrome.runtime.onMessage.removeListener(onRuntimeMessage);
+      } catch {
+        // ignore invalidated context
+      }
+    };
   }
 
   async function runOcr(imageUrl: string): Promise<void> {

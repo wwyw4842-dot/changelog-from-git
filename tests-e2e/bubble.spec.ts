@@ -48,8 +48,10 @@ test.describe("Polyglot Selection Bubble E2E Tests", () => {
     const host = page.locator("#__polyglot_host__");
     await expect(host).toBeAttached({ timeout: 5000 });
 
-    // 4. Verify that the shadow root wrapper exists
+    // 4. Verify that the shadow root wrapper and selection trigger button exist
     const rootMount = host.locator(".poly-root");
     await expect(rootMount).toBeAttached();
+    const triggerButton = host.getByRole("button", { name: "译" });
+    await expect(triggerButton).toBeVisible();
   });
 });
